@@ -82,6 +82,11 @@ class GlacierUploader:
             return self._upload_single_part(archive_description, file_handle, file_path, vault_name)
 
         # Handle multipart uploads here
+        if resume_upload_id is not None:
+            # handle resuming of a download
+            pass
+
+
 
     def _upload_single_part(self, archive_description, file_handle, file_path, vault_name):
         try:
@@ -104,6 +109,49 @@ class GlacierUploader:
                                  successful=True, tree_hash=response['checksum'],
                                  archive_id=response['archiveId'],
                                  location=['location'], upload_id=None)
+
+    def _get_existing_upload_checksums(self, file_handle, part_size, resume_upload_id):
+        response = self.glacier.list_parts(vaultName=vault_name, uploadId=upload_id)
+
+        parts = response['Parts']
+        part_size = response['PartSizeInBytes']
+        while 'Marker' in response:
+            logger.info("Retrieving more parts of file.")
+            response = glacier.list_parts(
+                vaultName=vault_name,
+                uploadId=upload_id,
+                marker=response['Marker']
+            )
+            parts.extend(response['Parts'])
+
+        job_list = []
+        list_of_checksums = []
+
+        logger.info("Retrieved all parts of file.")
+
+        for byte_pos in range(0, file_size, part_size):
+            job_list.append(byte_pos)
+            list_of_checksums.append(None)
+
+        num_parts = len(job_list)
+
+        logger.info("Validating checksums uploaded against file parts")
+
+        #TODO: maybe sort the parts by starting byte?
+        for part_number, part_data in enumerate(parts):
+            # should only be 2 parts in RangeInBytes
+            part_start, part_end = [int(i) for i in part_data['RangeInBytes'].split('-')]
+            logger.info("Part {}: Validating bytes {} to {}".format(part_number, part_start, part_end))
+            # seeek to the start of part and read it
+            file_handle.seek(part_start)
+            data = file_handle.read(part_size)
+
+            part_hash = self._calculate_tree_hash(data, part_size)
+
+            # if part_hash == part_data['SHA256TreeHash']
+
+
+
 
 
 
