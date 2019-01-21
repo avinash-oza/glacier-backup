@@ -1,18 +1,17 @@
 import argparse
+import csv
 import datetime
 import logging
 import math
 import os
-import re
-import subprocess  # See how to use script directly
 import tarfile
 
 import boto3
 import gnupg
-
 from glacier_upload.upload import GlacierUploadException, upload
 
-upload_id_regex = re.compile("Upload id: (.*)")
+field_names = ['vault_name', 'file_path', 'date_uploaded', 'archive_id']
+
 
 def encrypt_and_compress_path(file_path, temp_dir):
     tar_dest_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
@@ -136,11 +135,22 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, help='Dir to tar')
     parser.add_argument('--temp-dir', type=str, help='scratch space')
+    parser.add_argument('--archive-logs', type=str, help='scratch space')
+    vault_name = 'abcd'
     args = parser.parse_args()
 
     #TODO: expand this to multiple files
     gpg_file_path = encrypt_and_compress_path(args.path, args.temp_dir)
     logger.info("Output file path is {}".format(gpg_file_path))
-    upload_file_to_glacier(gpg_file_path, 'Photos')
+    result = upload_file_to_glacier(gpg_file_path, vault_name)
+
+    with open(args.archive_logs, 'a') as f:
+        writer = csv.DictWriter(f, field_names)
+        row_to_write = {'vault_name': vault_name, 'file_path': gpg_file_path,
+                         'date_uploaded': datetime.datetime.now().isoformat(),
+                         'archive_id': result['archiveId']}
+        writer.writerow(row_to_write)
+        logger.info("Wrote row to file {}".format(row_to_write))
+
 
 
