@@ -11,8 +11,8 @@ import gnupg
 from dateutil.parser import parse
 from glacier_upload.upload import GlacierUploadException, upload
 
-# input_file_fields = ['file_path', 'vault_name', 'type']
-field_names = ['vault_name', 'type', 'file_path', 'date_uploaded', 'archive_id']
+# input_file_fields = [file_path,vault_name,type]
+# field_names = [source_dir,type,dest_file_name,dest_file_path,vault_name,timestamp_uploaded,archive_id]
 
 # source_dir,type,dest_file_name,dest_file_path,vault_name,timestamp_uploaded,archive_id
 def write_line_to_archive(archive_file_path, source_dir, type, dest_file_name, dest_file_path, vault_name, archive_id):
