@@ -8,10 +8,15 @@ import tarfile
 
 import boto3
 import gnupg
+from dateutil.parser import parse
 from glacier_upload.upload import GlacierUploadException, upload
 
-field_names = ['vault_name', 'file_path', 'date_uploaded', 'archive_id']
+# input_file_fields = ['file_path', 'vault_name', 'type']
+field_names = ['vault_name', 'type', 'file_path', 'date_uploaded', 'archive_id']
 
+# source_dir,type,dest_file_name,dest_file_path,vault_name,timestamp_uploaded,archive_id
+def write_line_to_archive(archive_file_path, source_dir, type, dest_file_name, dest_file_path, vault_name, archive_id):
+    pass
 
 def encrypt_and_compress_path(file_path, temp_dir):
     tar_dest_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
@@ -52,7 +57,7 @@ def encrypt_and_compress_path(file_path, temp_dir):
         logger.info("{} {} {}".format(ret.ok, ret.status, ret.stderr))
         logger.info("Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
-    return dest_gpg_encrypted_output
+    return dest_gpg_encrypted_output, encrypted_output
 
 def get_or_create_multipart_upload(file_path, vault_name, part_size_bytes):
     """
@@ -128,6 +133,45 @@ def upload_file_to_glacier(file_path, vault_name, part_size=1024, threads=1):
             logger.info("Successfully uploaded {} and archive_id is {} and location {}".format(file_path, result['archiveId'], result['location']))
             return result
 
+def get_list_of_files_to_upload(input_file_path, archive_log_path):
+    """
+    Returns a list of files that should be uploaded. type=photo will be ignored if its already in
+    the archive (as these only need to be archived once)
+    :param str input_file_path:
+    :param str archive_log_path:
+    :return: list of dicts
+    """
+    archive_dict = {}
+    input_file_dict = {}
+
+    with open(archive_log_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            row['timestamp_uploaded'] = parse(row['timestamp_uploaded'])
+            #TODO: handle updating dict when multiple entries of same file exists
+            archive_dict[row['source_dir']] = row
+
+    logger.info("Loaded {} prior archived entries".format(len(archive_dict)))
+
+    # read the input files and only add those that we don't have already
+    with open(input_file_path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            file_path = row['file_path']
+            dir_type = row['type'] # photos/data
+
+            if file_path in archive_dict and dir_type == 'photos':
+                # add additional checks for when to add file in
+                logger.warning("Path {} already exists with last uploaded date as {}".format(file_path, archive_dict[file_path]['timestamp_uploaded']))
+                continue
+
+            input_file_dict[file_path] = row
+
+    logger.info("Loaded {} directories to upload".format(len(input_file_dict)))
+
+    return input_file_dict
+
+
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s')
     logger = logging.getLogger(__name__)
@@ -135,22 +179,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--path', type=str, help='Dir to tar')
     parser.add_argument('--temp-dir', type=str, help='scratch space')
-    parser.add_argument('--archive-logs', type=str, help='scratch space')
-    vault_name = 'abcd'
+
+    parser.add_argument('--archive-log-path', type=str, help='File to output archive ids to ')
+    parser.add_argument('--input-file-path', type=str, help='File containing directory list')
     args = parser.parse_args()
 
-    #TODO: expand this to multiple files
-    gpg_file_path = encrypt_and_compress_path(args.path, args.temp_dir)
-    logger.info("Output file path is {}".format(gpg_file_path))
-    result = upload_file_to_glacier(gpg_file_path, vault_name)
+    directories_to_upload = get_list_of_files_to_upload(args.input_file_path, args.archive_log_path)
+    for key, values_dict in directories_to_upload.items():
+        vault_name = values_dict['vault_name']
 
-    with open(args.archive_logs, 'a') as f:
-        writer = csv.DictWriter(f, field_names)
-        row_to_write = {'vault_name': vault_name, 'file_path': gpg_file_path,
-                         'date_uploaded': datetime.datetime.now().isoformat(),
-                         'archive_id': result['archiveId']}
-        writer.writerow(row_to_write)
-        logger.info("Wrote row to file {}".format(row_to_write))
+        logger.info("Calling encrypt and compress with {} and vault {}".format(values_dict['file_path'], vault_name))
 
+        gpg_file_path, gpg_file_name = encrypt_and_compress_path(values_dict['file_path'], args.temp_dir)
+        result = upload_file_to_glacier(gpg_file_path, args['vault_name'])
 
-
+        write_line_to_archive(args.archive_log_path, values_dict['file_path'], values_dict['type'],
+                              gpg_file_name, gpg_file_path, vault_name, result['archiveId'])
+    logger.info("ALL DONE")
