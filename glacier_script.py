@@ -12,11 +12,22 @@ from dateutil.parser import parse
 from glacier_upload.upload import GlacierUploadException, upload
 
 # input_file_fields = [file_path,vault_name,type]
-# field_names = [source_dir,type,dest_file_name,dest_file_path,vault_name,timestamp_uploaded,archive_id]
+field_names = ['source_dir','type','dest_file_name','dest_file_path','vault_name','timestamp_uploaded','archive_id']
 
-# source_dir,type,dest_file_name,dest_file_path,vault_name,timestamp_uploaded,archive_id
-def write_line_to_archive(archive_file_path, source_dir, type, dest_file_name, dest_file_path, vault_name, archive_id):
-    pass
+def write_line_to_archive(archive_file_path, **kwargs):
+    """
+    kwargs should be field_names
+    :param archive_file_path:
+    :param kwargs:
+    :return:
+    """
+    kwargs['timestamp_uploaded'] = datetime.datetime.utcnow().isoformat() +'Z'
+    with open(archive_file_path, 'a') as f:
+        writer = csv.DictWriter(f, field_names, dialect=csv.unix_dialect)
+        writer.writerow(kwargs)
+        logger.info("Wrote {} to archive log {}".format(kwargs, archive_file_path))
+
+
 
 def encrypt_and_compress_path(file_path, temp_dir):
     tar_dest_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
@@ -171,6 +182,27 @@ def get_list_of_files_to_upload(input_file_path, archive_log_path):
 
     return input_file_dict
 
+def main(args):
+    input_file_path = args.input_file_path
+    archive_log_path = args.archive_log_path
+    temp_dir = args.temp_dir
+
+    directories_to_upload = get_list_of_files_to_upload(input_file_path, archive_log_path)
+    for key, values_dict in directories_to_upload.items():
+        vault_name = values_dict['vault_name']
+        file_path = values_dict['file_path']
+        dir_type = values_dict['type']
+
+        logger.info("Calling encrypt and compress with {} and vault {}".format(file_path, vault_name))
+
+        gpg_file_path, gpg_file_name = encrypt_and_compress_path(file_path, temp_dir)
+        result = upload_file_to_glacier(gpg_file_path, vault_name)
+
+        write_line_to_archive(archive_log_path, file_path=file_path, type=dir_type,
+                              dest_file_name=gpg_file_name, dest_file_path=gpg_file_path,
+                              vault_name=vault_name, archive_id=result['archiveId'])
+    logger.info("ALL DONE")
+
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s')
@@ -184,15 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('--input-file-path', type=str, help='File containing directory list')
     args = parser.parse_args()
 
-    directories_to_upload = get_list_of_files_to_upload(args.input_file_path, args.archive_log_path)
-    for key, values_dict in directories_to_upload.items():
-        vault_name = values_dict['vault_name']
+    main(args)
 
-        logger.info("Calling encrypt and compress with {} and vault {}".format(values_dict['file_path'], vault_name))
-
-        gpg_file_path, gpg_file_name = encrypt_and_compress_path(values_dict['file_path'], args.temp_dir)
-        result = upload_file_to_glacier(gpg_file_path, args['vault_name'])
-
-        write_line_to_archive(args.archive_log_path, values_dict['file_path'], values_dict['type'],
-                              gpg_file_name, gpg_file_path, vault_name, result['archiveId'])
-    logger.info("ALL DONE")
+    # write_line_to_archive(args.archive_log_path, source_dir='abcd', type='type1', dest_file_path='dest_file_path', dest_file_name='FILENAME',
+    #                       vault_name='my_vault', archive_id='MY_BIG_ID')
