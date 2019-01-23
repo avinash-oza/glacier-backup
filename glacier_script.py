@@ -12,7 +12,7 @@ from dateutil.parser import parse
 from glacier_upload.upload import GlacierUploadException, upload
 
 # input_file_fields = [file_path,vault_name,type]
-field_names = ['source_dir','type','dest_file_name','dest_file_path','vault_name','timestamp_uploaded','archive_id']
+field_names = ['file_path','type','dest_file_name','dest_file_path','vault_name','timestamp_uploaded','archive_id']
 
 def write_line_to_archive(archive_file_path, **kwargs):
     """
