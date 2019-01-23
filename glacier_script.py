@@ -1,6 +1,7 @@
 import argparse
 import csv
 import datetime
+import gzip
 import logging
 import math
 import os
@@ -27,7 +28,23 @@ def write_line_to_archive(archive_file_path, **kwargs):
         writer.writerow(kwargs)
         logger.info("Wrote {} to archive log {}".format(kwargs, archive_file_path))
 
+def write_directory_list_to_file(file_path, temp_dir):
+    """writes the listing of the directory to a file"""
+    listing_file_name = '.'.join(['LISTING', os.path.basename(file_path).replace(' ', '_'),'gz'])
+    listing_file_path = os.path.join(temp_dir, listing_file_name)
+    logger.info("Creating file containing the list of files {}".format(listing_file_path))
+    with gzip.open(listing_file_path, 'wt') as f:
 
+        for dirname, dirnames, filenames in os.walk(file_path):
+            # print path to all subdirectories first.
+            for subdirname in dirnames:
+                f.write(os.path.join(dirname, subdirname) +'\n')
+
+            # print path to all filenames.
+            for filename in filenames:
+                f.write(os.path.join(dirname, filename) + '\n')
+
+    logger.info("Done creating file listing {}".format(listing_file_path))
 
 def encrypt_and_compress_path(file_path, temp_dir):
     tar_dest_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
@@ -66,7 +83,7 @@ def encrypt_and_compress_path(file_path, temp_dir):
         with open(dest_tar_file, 'rb') as tar_file:
             ret = gpg.encrypt_file(tar_file, output=dest_gpg_encrypted_output, armor=False, recipients=fingerprint)
         logger.info("{} {} {}".format(ret.ok, ret.status, ret.stderr))
-        logger.info("Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
+    logger.info("Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
     return dest_gpg_encrypted_output, encrypted_output
 
@@ -196,6 +213,7 @@ def main(args):
         logger.info("Calling encrypt and compress with {} and vault {}".format(file_path, vault_name))
 
         gpg_file_path, gpg_file_name = encrypt_and_compress_path(file_path, temp_dir)
+        write_directory_list_to_file(file_path, temp_dir)
         result = upload_file_to_glacier(gpg_file_path, vault_name)
 
         write_line_to_archive(archive_log_path, file_path=file_path, type=dir_type,
@@ -217,6 +235,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args)
-
-    # write_line_to_archive(args.archive_log_path, source_dir='abcd', type='type1', dest_file_path='dest_file_path', dest_file_name='FILENAME',
-    #                       vault_name='my_vault', archive_id='MY_BIG_ID')
