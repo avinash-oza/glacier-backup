@@ -13,7 +13,7 @@ from dateutil.parser import parse
 from glacier_upload.upload import GlacierUploadException, upload
 
 # input_file_fields = [file_path,vault_name,type]
-field_names = ['file_path','type','dest_file_name','dest_file_path','vault_name','timestamp_uploaded','archive_id']
+field_names = ['file_path','type','dest_file_name','dest_file_path','vault_name','timestamp_uploaded','archive_id', 'timestamp_deleted']
 
 def write_line_to_archive(archive_file_path, **kwargs):
     """
@@ -188,7 +188,7 @@ def get_list_of_files_to_upload(input_file_path, archive_log_path):
             file_path = row['file_path']
             dir_type = row['type'] # photos/data
 
-            if file_path in archive_dict and dir_type == 'photos':
+            if file_path in archive_dict and dir_type.lower() == 'photos':
                 # add additional checks for when to add file in
                 logger.warning("Path {} already exists with last uploaded date as {}".format(file_path, archive_dict[file_path]['timestamp_uploaded']))
                 continue
@@ -218,7 +218,7 @@ def main(args):
 
         write_line_to_archive(archive_log_path, file_path=file_path, type=dir_type,
                               dest_file_name=gpg_file_name, dest_file_path=gpg_file_path,
-                              vault_name=vault_name, archive_id=result['archiveId'])
+                              vault_name=vault_name, archive_id=result['archiveId'], timestamp_deleted=None)
     logger.info("ALL DONE")
 
 
