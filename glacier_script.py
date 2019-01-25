@@ -2,6 +2,7 @@ import argparse
 import csv
 import datetime
 import gzip
+import io
 import logging
 import math
 import os
@@ -12,27 +13,55 @@ import gnupg
 from dateutil.parser import parse
 from glacier_upload.upload import GlacierUploadException, upload
 
+
 class GlacierUploader:
-    # input_file_fields = [file_path,vault_name,type]
-    field_names = ['file_path','type','dest_file_name','dest_file_path','vault_name','timestamp_uploaded','archive_id', 'timestamp_deleted']
+    # input_field_names = ['file_path','vault_name','type']
+    field_names = ['file_path', 'type', 'dest_file_name', 'dest_file_path', 'vault_name', 'timestamp_uploaded', 'archive_id', 'timestamp_deleted']
 
-    def __init__(self):
+    def __init__(self, bucket_name='glacier-archives-info', archive_file_name='glacier_archive_list.csv'):
         self.glacier = boto3.client('glacier')
+        self.s3 = boto3.client('s3')
+        self._archive_file_name = archive_file_name
+        self._bucket_name = bucket_name
 
-    def write_line_to_archive(self, archive_file_path, **kwargs):
+    def _load_archive_file_from_s3(self, bucket_name, archive_file_name):
+
         """
+        loads the data from the s3 path specified into a StringIO object and returns it
+        :param bucket_name: the name of the bucket to load from
+        :param archive_file_name: the file name
+        :return: StringIO
+        """
+        obj = self.s3.get_object(Bucket=bucket_name, Key=archive_file_name)
+        io_result = io.StringIO(obj['Body'].read().decode('utf-8'))
+        logger.info("Downloaded file {} from S3".format(archive_file_name))
+
+        return io_result
+
+    def upload_csv_to_s3(self, bucket_name, file_name, file_obj):
+        file_obj.seek(io.SEEK_SET) # reset to beginning
+        encoded_data = io.BytesIO(file_obj.read().encode())
+        self.s3.upload_fileobj(encoded_data, bucket_name, file_name)
+        logger.info("Successfully wrote {} to bucket {}".format(file_name, bucket_name))
+
+    def write_line_to_archive(self, archive_file_obj, **kwargs):
+        """
+        # TODO: make sure we are at the end of the archive file
         kwargs should be field_names
-        :param archive_file_path:
         :param kwargs:
         :return:
         """
         kwargs['timestamp_uploaded'] = datetime.datetime.utcnow().isoformat() +'Z'
-        with open(archive_file_path, 'a') as f:
-            writer = csv.DictWriter(f, self.field_names, dialect=csv.unix_dialect)
-            writer.writerow(kwargs)
-            logger.info("Wrote {} to archive log {}".format(kwargs, archive_file_path))
+
+        temp_io = io.StringIO()
+        writer = csv.DictWriter(temp_io, self.field_names, dialect=csv.unix_dialect)
+        writer.writerow(kwargs)
+
+        archive_file_obj.write(temp_io.getvalue())
+        logger.info("Wrote {} to archive log StringIO".format(kwargs))
 
     def write_directory_list_to_file(self, file_path, temp_dir):
+        #TODO: update this to s3 as well
         """writes the listing of the directory to a file"""
         listing_file_name = '.'.join(['LISTING', os.path.basename(file_path).replace(' ', '_'),'gz'])
         listing_file_path = os.path.join(temp_dir, listing_file_name)
@@ -99,8 +128,6 @@ class GlacierUploader:
         :param part_size_bytes:
         :return:
         """
-
-
         # check to see the current pending uploads
         pending_uploads = self.glacier.list_multipart_uploads(vaultName=vault_name)
         if pending_uploads['UploadsList']:
@@ -165,23 +192,22 @@ class GlacierUploader:
                 logger.info("Successfully uploaded {} and archive_id is {} and location {}".format(file_path, result['archiveId'], result['location']))
                 return result
 
-    def get_list_of_files_to_upload(self, input_file_path, archive_log_path):
+    def get_list_of_files_to_upload(self, input_file_path, archive_file_obj):
         """
         Returns a list of files that should be uploaded. type=photo will be ignored if its already in
         the archive (as these only need to be archived once)
         :param str input_file_path:
-        :param str archive_log_path:
+        :param StringIO archive_file_obj:
         :return: list of dicts
         """
         archive_dict = {}
         input_file_dict = {}
 
-        with open(archive_log_path, 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                row['timestamp_uploaded'] = parse(row['timestamp_uploaded'])
-                #TODO: handle updating dict when multiple entries of same file exists
-                archive_dict[row['source_dir']] = row
+        reader = csv.DictReader(archive_file_obj.read().split('\n'))
+        for row in reader:
+            row['timestamp_uploaded'] = parse(row['timestamp_uploaded'])
+            #TODO: handle updating dict when multiple entries of same file exists
+            archive_dict[row['source_dir']] = row
 
         logger.info("Loaded {} prior archived entries".format(len(archive_dict)))
 
@@ -190,7 +216,7 @@ class GlacierUploader:
             reader = csv.DictReader(f)
             for row in reader:
                 file_path = row['file_path']
-                dir_type = row['type'] # photos/data
+                dir_type = row['type']  # photos/data
 
                 if file_path in archive_dict and dir_type.lower() == 'photos':
                     # add additional checks for when to add file in
@@ -205,10 +231,11 @@ class GlacierUploader:
 
     def main(self, args):
         input_file_path = args.input_file_path
-        archive_log_path = args.archive_log_path
         temp_dir = args.temp_dir
 
-        directories_to_upload = self.get_list_of_files_to_upload(input_file_path, archive_log_path)
+        archive_file_obj = self._load_archive_file_from_s3(self._bucket_name, self._archive_file_name)
+
+        directories_to_upload = self.get_list_of_files_to_upload(input_file_path, archive_file_obj)
         for key, values_dict in directories_to_upload.items():
             vault_name = values_dict['vault_name']
             file_path = values_dict['file_path']
@@ -218,11 +245,13 @@ class GlacierUploader:
 
             gpg_file_path, gpg_file_name = self.encrypt_and_compress_path(file_path, temp_dir)
             self.write_directory_list_to_file(file_path, temp_dir)
-            # result = self.upload_file_to_glacier(gpg_file_path, vault_name)
+            result = self.upload_file_to_glacier(gpg_file_path, vault_name)
 
-            self.write_line_to_archive(archive_log_path, file_path=file_path, type=dir_type,
+            self.write_line_to_archive(archive_file_obj, file_path=file_path, type=dir_type,
                                   dest_file_name=gpg_file_name, dest_file_path=gpg_file_path,
                                   vault_name=vault_name, archive_id=result['archiveId'], timestamp_deleted=None)
+            # upload after each file is complete to make sure if the job fails we don't lose archive ids
+            self.upload_csv_to_s3(self._bucket_name, self._archive_file_name, archive_file_obj)
         logger.info("ALL DONE")
 
 
@@ -234,9 +263,9 @@ if __name__ == '__main__':
     parser.add_argument('--path', type=str, help='Dir to tar')
     parser.add_argument('--temp-dir', type=str, help='scratch space')
 
-    parser.add_argument('--archive-log-path', type=str, help='File to output archive ids to ')
     parser.add_argument('--input-file-path', type=str, help='File containing directory list')
     args = parser.parse_args()
 
     g = GlacierUploader()
+
     g.main(args)
