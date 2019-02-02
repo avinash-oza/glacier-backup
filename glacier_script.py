@@ -208,6 +208,10 @@ class GlacierUploader:
         for row in reader:
             row['timestamp_uploaded'] = parse(row['timestamp_uploaded'])
             #TODO: handle updating dict when multiple entries of same file exists
+            if row['timestamp_deleted']:
+                logger.info("Skipping {} that was uploaded on {} and deleted on {}".format(row['source_dir'],
+                                                                                           row['timestamp_uploaded'],
+                                                                                           parse(row['timestamp_deleted'])))
             archive_dict[row['source_dir']] = row
 
         logger.info("Loaded {} prior archived entries".format(len(archive_dict)))
