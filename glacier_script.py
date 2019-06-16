@@ -11,6 +11,7 @@ import tarfile
 import boto3
 import gnupg
 from botocore.exceptions import ClientError
+from s3transfer import TransferConfig, MB
 
 
 class GlacierUploader:
@@ -18,6 +19,7 @@ class GlacierUploader:
 
     def __init__(self, bucket_name='glacier-backups-651d8f3', archive_file_name='glacier_archive_list.csv'):
         self.s3 = boto3.client('s3')
+        self._transfer_config = TransferConfig(max_concurrency=2, multipart_chunksize=128*MB)
         self._archive_file_name = archive_file_name
         self._bucket_name = bucket_name
 
@@ -93,7 +95,7 @@ class GlacierUploader:
 
         with open(gpg_file_path, 'rb') as f:
             logger.info("Start uploading {} to S3".format(gpg_file_name))
-            self.s3.upload_fileobj(f, Bucket=bucket_name, Key=gpg_file_name, ExtraArgs=extra_args)
+            self.s3.upload_fileobj(f, Bucket=bucket_name, Key=gpg_file_name, ExtraArgs=extra_args, Config=self._transfer_config)
             logger.info("Finished uploading {} to S3".format(gpg_file_name))
 
     def upload_s3_glacier(self, args):
