@@ -11,7 +11,7 @@ import tarfile
 import boto3
 import gnupg
 from botocore.exceptions import ClientError
-from s3transfer import TransferConfig, MB
+from boto3.s3.transfer import TransferConfig, MB
 
 
 class GlacierUploader:
