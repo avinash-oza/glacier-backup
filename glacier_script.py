@@ -10,6 +10,7 @@ import tarfile
 
 import boto3
 import gnupg
+from botocore.exceptions import ClientError
 
 
 class GlacierUploader:
@@ -120,10 +121,21 @@ class GlacierUploader:
             storage_class = 'GLACIER'
 
             if dir_type == 'photos':
-                # see if we have the file already
-                # TODO: make a function to check for this using the HEAD
-                logger.info("Detected a photo folder for upload {}. Setting storage class to DEEP_ARCHIVE".format(file_path))
-                storage_class = 'DEEP_ARCHIVE'
+                # TODO: refactor this out with encrypt_and_compress_path
+                expected_file_name = '.'.join([os.path.basename(file_path).replace(' ', '_'), 'tar.gz.gpg'])
+                try:
+                    metadata = self.s3.head_object(Bucket=self._bucket_name, Key=expected_file_name)
+                except ClientError:
+                    logger.info("Detected a photo folder for upload {}. Setting storage class to DEEP_ARCHIVE".format(file_path))
+                    storage_class = 'DEEP_ARCHIVE'
+                else:
+                    # object exists so print out the datetime
+                    logger.info(
+                        "Found archive {} that was last uploaded on {} with class: {}. It will not be uploaded again".format(
+                            expected_file_name,
+                            metadata['LastModified'].isoformat(),
+                            metadata['StorageClass']))
+                    continue
 
             logger.info("Calling encrypt and compress with {} and vault {}".format(file_path, vault_name))
 
