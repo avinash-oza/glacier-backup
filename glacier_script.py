@@ -19,7 +19,7 @@ class GlacierUploader:
 
     def __init__(self, bucket_name='glacier-backups-651d8f3', archive_file_name='glacier_archive_list.csv'):
         self.s3 = boto3.client('s3')
-        self._transfer_config = TransferConfig(max_concurrency=2, multipart_chunksize=128*MB)
+        self._transfer_config = TransferConfig(max_concurrency=2, multipart_chunksize=64*MB, max_io_queue=2, num_download_attempts=1)
         self._archive_file_name = archive_file_name
         self._bucket_name = bucket_name
 
