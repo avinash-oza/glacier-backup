@@ -119,7 +119,7 @@ class GlacierUploader:
         for key, values_dict in input_file_dict.items():
             vault_name = values_dict['vault_name']
             file_path = values_dict['file_path']
-            dir_type = row['type']
+            dir_type = values_dict['type']
             storage_class = 'GLACIER'
 
             if dir_type == 'photos':
