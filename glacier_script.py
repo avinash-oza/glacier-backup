@@ -10,18 +10,19 @@ import tarfile
 
 import boto3
 import gnupg
-from botocore.exceptions import ClientError
 from boto3.s3.transfer import TransferConfig, MB
+from botocore.exceptions import ClientError
 
 
 class GlacierUploader:
     # input_field_names = ['file_path','vault_name','type']
 
-    def __init__(self, bucket_name='glacier-backups-651d8f3', archive_file_name='glacier_archive_list.csv'):
+    def __init__(self, bucket_name='glacier-backups-651d8f3', archive_file_name='glacier_archive_list.csv', temp_dir=None):
         self.s3 = boto3.client('s3')
         self._transfer_config = TransferConfig(max_concurrency=2, multipart_chunksize=64*MB, max_io_queue=2, num_download_attempts=1)
         self._archive_file_name = archive_file_name
         self._bucket_name = bucket_name
+        self._work_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
 
     def upload_csv_to_s3(self, bucket_name, file_name, file_obj):
         file_obj.seek(io.SEEK_SET)  # reset to beginning
@@ -48,24 +49,23 @@ class GlacierUploader:
         self.upload_csv_to_s3(self._bucket_name, listing_file_name, listing_file_obj)
         return listing_file_obj
 
-    def encrypt_and_compress_path(self, file_path, temp_dir):
-        tar_dest_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
-        logger.info("Create directory for run: {}".format(tar_dest_dir))
+    def encrypt_and_compress_path(self, file_path):
+        logger.info("Create directory for run: {}".format(self._work_dir))
 
         try:
-            os.mkdir(tar_dest_dir)
+            os.mkdir(self._work_dir)
         except FileExistsError:
             pass
 
         # Init GPG class
         gpg = gnupg.GPG()
-        key_to_use = gpg.list_keys()[0] # Assumption is the proper key is the only one here
+        key_to_use = gpg.list_keys()[0]  # Assumption is the proper key is the only one here
         fingerprint = key_to_use['fingerprint']
         logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_to_use['uids']))
 
         # set up tarred output file
         output_file = '.'.join([os.path.basename(file_path).replace(' ', '_'), 'tar.gz'])
-        dest_tar_file = os.path.join(tar_dest_dir, output_file)
+        dest_tar_file = os.path.join(self._work_dir, output_file)
         logger.info("Output tar file is {}".format(dest_tar_file))
 
         if not os.path.exists(dest_tar_file):
@@ -77,7 +77,7 @@ class GlacierUploader:
 
         # setup encrypted file path
         encrypted_output = '.'.join([output_file, 'gpg'])
-        dest_gpg_encrypted_output = os.path.join(tar_dest_dir, encrypted_output)
+        dest_gpg_encrypted_output = os.path.join(self._work_dir, encrypted_output)
         logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
         if not os.path.exists(dest_gpg_encrypted_output):
@@ -105,7 +105,6 @@ class GlacierUploader:
         :return:
         """
         input_file_path = args.input_file_path
-        temp_dir = args.temp_dir
 
         # read the input files and only add those that we don't have already
         input_file_dict = {}
@@ -141,7 +140,7 @@ class GlacierUploader:
 
             logger.info("Calling encrypt and compress with {} and vault {}".format(file_path, vault_name))
 
-            gpg_file_path, gpg_file_name = self.encrypt_and_compress_path(file_path, temp_dir)
+            gpg_file_path, gpg_file_name = self.encrypt_and_compress_path(file_path)
             self.write_directory_list_to_file(file_path)
             self.upload_file_to_s3(gpg_file_path, gpg_file_name,
                                    self._bucket_name,
@@ -159,6 +158,6 @@ if __name__ == '__main__':
     parser.add_argument('--input-file-path', type=str, required=True, help='File containing directory list')
     args = parser.parse_args()
 
-    g = GlacierUploader()
+    g = GlacierUploader(temp_dir=args.temp_dir)
 
     g.upload_s3_glacier(args)
