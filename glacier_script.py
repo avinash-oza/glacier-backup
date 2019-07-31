@@ -78,7 +78,10 @@ class GlacierUploader:
         dest_tar_file = os.path.join(self._work_dir, output_file)
         logger.info("Output tar file is {}".format(dest_tar_file))
 
-        if not os.path.exists(dest_tar_file):
+        #TODO: handle compressed file as input
+
+        # only tar when the destination doesnt exist and the source is a directory
+        if not os.path.exists(dest_tar_file) and os.path.isdir(file_path):
             logger.info("Start tarring path: {}. Output path: {}".format(file_path, dest_tar_file))
 
             with tarfile.open(dest_tar_file, 'w:gz') as tar:
