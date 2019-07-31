@@ -49,6 +49,16 @@ class GlacierUploader:
         self.upload_csv_to_s3(self._bucket_name, listing_file_name, listing_file_obj)
         return listing_file_obj
 
+    def _get_compressed_file_name(self, file_path):
+        if file_path.endswith('bz2') or file_path.endswith('gz'):
+            # keep the compressed file as is
+            return file_path
+
+        return '.'.join([os.path.basename(file_path).replace(' ', '_'), 'tar.gz'])
+
+    def _get_encrypted_path(self, file_path):
+        return '.'.join([file_path, 'gpg'])
+
     def encrypt_and_compress_path(self, file_path):
         logger.info("Create directory for run: {}".format(self._work_dir))
 
@@ -64,7 +74,7 @@ class GlacierUploader:
         logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_to_use['uids']))
 
         # set up tarred output file
-        output_file = '.'.join([os.path.basename(file_path).replace(' ', '_'), 'tar.gz'])
+        output_file = self._get_compressed_file_name(file_path)
         dest_tar_file = os.path.join(self._work_dir, output_file)
         logger.info("Output tar file is {}".format(dest_tar_file))
 
@@ -76,7 +86,7 @@ class GlacierUploader:
             logger.info("Finished path: {}. Output path: {}".format(file_path, dest_tar_file))
 
         # setup encrypted file path
-        encrypted_output = '.'.join([output_file, 'gpg'])
+        encrypted_output = self._get_encrypted_path(output_file)
         dest_gpg_encrypted_output = os.path.join(self._work_dir, encrypted_output)
         logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
@@ -87,12 +97,13 @@ class GlacierUploader:
             logger.info("{} {} {}".format(ret.ok, ret.status, ret.stderr))
         logger.info("Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
-        return dest_gpg_encrypted_output, encrypted_output
+        return encrypted_output
 
-    def upload_file_to_s3(self, gpg_file_path, gpg_file_name, bucket_name, extra_args=None):
+    def upload_file_to_s3(self, gpg_file_name, bucket_name, extra_args=None):
         if extra_args is None:
             extra_args = {}
 
+        gpg_file_path = os.path.join(self._work_dir, gpg_file_name)
         with open(gpg_file_path, 'rb') as f:
             logger.info("Start uploading {} to S3".format(gpg_file_name))
             self.s3.upload_fileobj(f, Bucket=bucket_name, Key=gpg_file_name, ExtraArgs=extra_args, Config=self._transfer_config)
@@ -122,12 +133,11 @@ class GlacierUploader:
             storage_class = 'GLACIER'
 
             if dir_type == 'photos':
-                # TODO: refactor this out with encrypt_and_compress_path
-                expected_file_name = '.'.join([os.path.basename(file_path).replace(' ', '_'), 'tar.gz.gpg'])
+                expected_file_name = self._get_encrypted_path(self._get_compressed_file_name(file_path))
                 try:
                     metadata = self.s3.head_object(Bucket=self._bucket_name, Key=expected_file_name)
                 except ClientError:
-                    logger.info("Detected a photo folder for upload {}. Setting storage class to DEEP_ARCHIVE".format(file_path))
+                    logger.info("Detected a photo folder/file for upload {}. Setting storage class to DEEP_ARCHIVE".format(file_path))
                     storage_class = 'DEEP_ARCHIVE'
                 else:
                     # object exists so print out the datetime
@@ -140,9 +150,11 @@ class GlacierUploader:
 
             logger.info("Calling encrypt and compress with {} and vault {}".format(file_path, vault_name))
 
-            gpg_file_path, gpg_file_name = self.encrypt_and_compress_path(file_path)
-            self.write_directory_list_to_file(file_path)
-            self.upload_file_to_s3(gpg_file_path, gpg_file_name,
+            gpg_file_name = self.encrypt_and_compress_path(file_path)
+            if os.path.isdir(file_path):
+                # don't upload the file_path if it happens to be a file (possibly compressed already)
+                self.write_directory_list_to_file(file_path)
+            self.upload_file_to_s3(gpg_file_name,
                                    self._bucket_name,
                                    extra_args={'StorageClass': storage_class})
 
