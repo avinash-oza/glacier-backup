@@ -10,8 +10,11 @@ import tarfile
 
 import boto3
 import gnupg
+from collections import namedtuple
 from boto3.s3.transfer import TransferConfig, MB
 from botocore.exceptions import ClientError
+
+FileData = namedtuple('FileData', ['file_path', 'compressed_file_name', 'encrypted_file_name',  'type', 'storage_class'])
 
 
 class GlacierUploader:
@@ -52,14 +55,14 @@ class GlacierUploader:
     def _get_compressed_file_name(self, file_path):
         if file_path.endswith('bz2') or file_path.endswith('gz'):
             # keep the compressed file as is
-            return file_path
+            return os.path.basename(file_path).replace(' ', '_')
 
         return '.'.join([os.path.basename(file_path).replace(' ', '_'), 'tar.gz'])
 
     def _get_encrypted_path(self, file_path):
         return '.'.join([file_path, 'gpg'])
 
-    def encrypt_and_compress_path(self, file_path):
+    def encrypt_and_compress_path(self, file_path, row_file_data):
         logger.info("Create directory for run: {}".format(self._work_dir))
 
         try:
@@ -74,14 +77,15 @@ class GlacierUploader:
         logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_to_use['uids']))
 
         # set up tarred output file
-        output_file = self._get_compressed_file_name(file_path)
-        dest_tar_file = os.path.join(self._work_dir, output_file)
+        dest_tar_file = os.path.join(self._work_dir, row_file_data.compressed_file_name)
+        if os.path.isfile(row_file_data.file_path):
+            dest_tar_file = row_file_data.file_path
+            logger.info("Not compressing file {} as it is aleady compressed".format(dest_tar_file))
+
         logger.info("Output tar file is {}".format(dest_tar_file))
 
-        #TODO: handle compressed file as input
-
-        # only tar when the destination doesnt exist and the source is a directory
-        if not os.path.exists(dest_tar_file) and os.path.isdir(file_path):
+        # only tar when it is a directory and it doesnt exist
+        if not os.path.exists(dest_tar_file):
             logger.info("Start tarring path: {}. Output path: {}".format(file_path, dest_tar_file))
 
             with tarfile.open(dest_tar_file, 'w:gz') as tar:
@@ -89,8 +93,7 @@ class GlacierUploader:
             logger.info("Finished path: {}. Output path: {}".format(file_path, dest_tar_file))
 
         # setup encrypted file path
-        encrypted_output = self._get_encrypted_path(output_file)
-        dest_gpg_encrypted_output = os.path.join(self._work_dir, encrypted_output)
+        dest_gpg_encrypted_output = os.path.join(self._work_dir, row_file_data.encrypted_file_name)
         logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
         if not os.path.exists(dest_gpg_encrypted_output):
@@ -100,7 +103,7 @@ class GlacierUploader:
             logger.info("{} {} {}".format(ret.ok, ret.status, ret.stderr))
         logger.info("Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
-        return encrypted_output
+        return dest_gpg_encrypted_output
 
     def upload_file_to_s3(self, gpg_file_name, bucket_name, extra_args=None):
         if extra_args is None:
@@ -120,28 +123,26 @@ class GlacierUploader:
         """
         input_file_path = args.input_file_path
 
-        # read the input files and only add those that we don't have already
-        input_file_dict = {}
+        input_file_list = []
         with open(input_file_path, 'r') as f:
             reader = csv.DictReader(f)
             for row in reader:
                 file_path = row['file_path']
 
-                input_file_dict[file_path] = row
+                compressed_file_name = self._get_compressed_file_name(file_path)
+                encrypted_file_name = self._get_encrypted_path(compressed_file_name)
+                file_type = row['type']
+                input_file_list.append(FileData(file_path=file_path, compressed_file_name=compressed_file_name,
+                                                encrypted_file_name=encrypted_file_name, type=file_type,
+                                                storage_class='DEEP_ARCHIVE' if file_type == 'photos' else 'GLACIER'))
 
-        for key, values_dict in input_file_dict.items():
-            vault_name = values_dict['vault_name']
-            file_path = values_dict['file_path']
-            dir_type = values_dict['type']
-            storage_class = 'GLACIER'
-
-            if dir_type == 'photos':
-                expected_file_name = self._get_encrypted_path(self._get_compressed_file_name(file_path))
+        for row in input_file_list:
+            if row.type == 'photos':
+                expected_file_name = row.encrypted_file_name
                 try:
                     metadata = self.s3.head_object(Bucket=self._bucket_name, Key=expected_file_name)
                 except ClientError:
                     logger.info("Detected a photo folder/file for upload {}. Setting storage class to DEEP_ARCHIVE".format(file_path))
-                    storage_class = 'DEEP_ARCHIVE'
                 else:
                     # object exists so print out the datetime
                     logger.info(
@@ -151,15 +152,15 @@ class GlacierUploader:
                             metadata['StorageClass']))
                     continue
 
-            logger.info("Calling encrypt and compress with {} and vault {}".format(file_path, vault_name))
+            logger.info("Calling encrypt and compress with {}".format(file_path))
 
-            gpg_file_name = self.encrypt_and_compress_path(file_path)
-            if os.path.isdir(file_path):
+            gpg_file_name = self.encrypt_and_compress_path(file_path, row)
+            if os.path.isdir(row.file_path):
                 # don't upload the file_path if it happens to be a file (possibly compressed already)
                 self.write_directory_list_to_file(file_path)
             self.upload_file_to_s3(gpg_file_name,
                                    self._bucket_name,
-                                   extra_args={'StorageClass': storage_class})
+                                   extra_args={'StorageClass': row.storage_class})
 
         logger.info("ALL DONE")
 
