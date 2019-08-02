@@ -62,7 +62,7 @@ class GlacierUploader:
     def _get_encrypted_path(self, file_path):
         return '.'.join([file_path, 'gpg'])
 
-    def encrypt_and_compress_path(self, file_path, row_file_data):
+    def encrypt_and_compress_path(self, row_file_data):
         logger.info("Create directory for run: {}".format(self._work_dir))
 
         try:
@@ -89,8 +89,8 @@ class GlacierUploader:
             logger.info("Start tarring path: {}. Output path: {}".format(file_path, dest_tar_file))
 
             with tarfile.open(dest_tar_file, 'w:gz') as tar:
-                tar.add(file_path)
-            logger.info("Finished path: {}. Output path: {}".format(file_path, dest_tar_file))
+                tar.add(row_file_data.file_path)
+            logger.info("Finished path: {}. Output path: {}".format(row_file_data.file_path, dest_tar_file))
 
         # setup encrypted file path
         dest_gpg_encrypted_output = os.path.join(self._work_dir, row_file_data.encrypted_file_name)
@@ -142,7 +142,7 @@ class GlacierUploader:
                 try:
                     metadata = self.s3.head_object(Bucket=self._bucket_name, Key=expected_file_name)
                 except ClientError:
-                    logger.info("Detected a photo folder/file for upload {}. Setting storage class to DEEP_ARCHIVE".format(file_path))
+                    logger.info("Detected a photo folder/file for upload {}. Setting storage class to DEEP_ARCHIVE".format(row.file_path))
                 else:
                     # object exists so print out the datetime
                     logger.info(
@@ -152,12 +152,13 @@ class GlacierUploader:
                             metadata['StorageClass']))
                     continue
 
-            logger.info("Calling encrypt and compress with {}".format(file_path))
+            logger.info("Calling encrypt and compress with {}. Dest file name will be {}".format(row.file_path,
+                                                                                                 row.compressed_file_name))
 
-            gpg_file_name = self.encrypt_and_compress_path(file_path, row)
+            gpg_file_name = self.encrypt_and_compress_path(row)
             if os.path.isdir(row.file_path):
                 # don't upload the file_path if it happens to be a file (possibly compressed already)
-                self.write_directory_list_to_file(file_path)
+                self.write_directory_list_to_file(row.file_path)
             self.upload_file_to_s3(gpg_file_name,
                                    self._bucket_name,
                                    extra_args={'StorageClass': row.storage_class})
