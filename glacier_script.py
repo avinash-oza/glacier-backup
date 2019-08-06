@@ -111,9 +111,10 @@ class GlacierUploader:
             extra_args = {}
 
         gpg_file_path = os.path.join(self._work_dir, gpg_file_name)
+        file_name_key = os.path.basename(gpg_file_path) # just the file name without the path
         with open(gpg_file_path, 'rb') as f:
-            logger.info("Start uploading {} to S3".format(gpg_file_name))
-            self.s3.upload_fileobj(f, Bucket=bucket_name, Key=gpg_file_name, ExtraArgs=extra_args, Config=self._transfer_config)
+            logger.info("Start uploading {} to S3 as key={}".format(gpg_file_name, file_name_key))
+            self.s3.upload_fileobj(f, Bucket=bucket_name, Key=file_name_key, ExtraArgs=extra_args, Config=self._transfer_config)
             logger.info("Finished uploading {} to S3".format(gpg_file_name))
 
     def upload_s3_glacier(self, args):
