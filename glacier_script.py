@@ -25,7 +25,8 @@ class GlacierUploader:
         self._transfer_config = TransferConfig(max_concurrency=2, multipart_chunksize=64*MB, max_io_queue=2, num_download_attempts=1)
         self._archive_file_name = archive_file_name
         self._bucket_name = bucket_name
-        self._work_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
+        # self._work_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
+        self._work_dir = temp_dir
 
     def upload_csv_to_s3(self, bucket_name, file_name, file_obj):
         file_obj.seek(io.SEEK_SET)  # reset to beginning
