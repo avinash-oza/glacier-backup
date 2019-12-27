@@ -1,6 +1,5 @@
 import argparse
 import csv
-import datetime
 import gzip
 import io
 import logging
@@ -10,7 +9,6 @@ import tarfile
 
 import boto3
 import gnupg
-from collections import namedtuple
 from boto3.s3.transfer import TransferConfig, MB
 from botocore.exceptions import ClientError
 
@@ -78,7 +76,7 @@ class GlacierUploader:
         logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_to_use['uids']))
 
         # set up tarred output file
-        dest_tar_file = os.path.join(self._work_dir, row_file_data.compressed_file_name)
+        dest_tar_file = row_file_data.compressed_file_full_path
         if os.path.isfile(row_file_data.file_path):
             dest_tar_file = row_file_data.file_path
             logger.info("Not compressing file {} as it is aleady compressed".format(dest_tar_file))
@@ -94,7 +92,7 @@ class GlacierUploader:
             logger.info("Finished path: {}. Output path: {}".format(row_file_data.file_path, dest_tar_file))
 
         # setup encrypted file path
-        dest_gpg_encrypted_output = os.path.join(self._work_dir, row_file_data.encrypted_file_name)
+        dest_gpg_encrypted_output = row_file_data.encrypted_file_full_path
         logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
         if not os.path.exists(dest_gpg_encrypted_output):
@@ -131,8 +129,6 @@ class GlacierUploader:
             for row in reader:
                 file_path = row['file_path']
 
-                compressed_file_name = self._get_compressed_file_name(file_path)
-                encrypted_file_name = self._get_encrypted_path(compressed_file_name)
                 file_type = row['type']
                 input_file_list.append(FileData(file_path=file_path, compressed_file_name=compressed_file_name,
                                                 encrypted_file_name=encrypted_file_name, type=file_type,
