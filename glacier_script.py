@@ -12,7 +12,40 @@ import gnupg
 from boto3.s3.transfer import TransferConfig, MB
 from botocore.exceptions import ClientError
 
-FileData = namedtuple('FileData', ['file_path', 'compressed_file_name', 'encrypted_file_name',  'type', 'storage_class'])
+class FileData:
+    def __init__(self, file_path, file_type, work_dir):
+        self._file_path = file_path
+        # TODO: check this
+        self._file_type = file_type
+        self._work_dir = work_dir
+
+    @property
+    def compressed_file_name(self):
+        if self._file_path.endswith('bz2') or self._file_path.endswith('gz'):
+            # keep the compressed file as is
+            return os.path.basename(self._file_path).replace(' ', '_')
+
+        return '.'.join([os.path.basename(self._file_path).replace(' ', '_'), 'tar.gz'])
+
+    @property
+    def compressed_file_full_path(self):
+        return os.path.join(self._work_dir, self.compressed_file_name)
+
+    @property
+    def encrypted_file_name(self):
+        return '.'.join([self.compressed_file_name, 'gpg'])
+
+    @property
+    def encrypted_file_full_path(self):
+        return os.path.join(self._work_dir, self.encrypted_file_name)
+
+    @property
+    def type(self):
+        return self._file_type
+
+    @property
+    def storage_class(self):
+        return 'DEEP_ARCHIVE' if self._file_type == 'photos' else 'GLACIER'
 
 
 class GlacierUploader:
@@ -50,16 +83,6 @@ class GlacierUploader:
         logger.info("Done creating file {}".format(listing_file_name))
         self.upload_csv_to_s3(self._bucket_name, listing_file_name, listing_file_obj)
         return listing_file_obj
-
-    def _get_compressed_file_name(self, file_path):
-        if file_path.endswith('bz2') or file_path.endswith('gz'):
-            # keep the compressed file as is
-            return os.path.basename(file_path).replace(' ', '_')
-
-        return '.'.join([os.path.basename(file_path).replace(' ', '_'), 'tar.gz'])
-
-    def _get_encrypted_path(self, file_path):
-        return '.'.join([file_path, 'gpg'])
 
     def encrypt_and_compress_path(self, row_file_data):
         logger.info("Create directory for run: {}".format(self._work_dir))
@@ -130,9 +153,7 @@ class GlacierUploader:
                 file_path = row['file_path']
 
                 file_type = row['type']
-                input_file_list.append(FileData(file_path=file_path, compressed_file_name=compressed_file_name,
-                                                encrypted_file_name=encrypted_file_name, type=file_type,
-                                                storage_class='DEEP_ARCHIVE' if file_type == 'photos' else 'GLACIER'))
+                input_file_list.append(FileData(file_path=file_path, file_type=file_type, work_dir=self._work_dir))
 
         for row in input_file_list:
             if row.type == 'photos':
