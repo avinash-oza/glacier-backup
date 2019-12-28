@@ -20,6 +20,10 @@ class FileData:
         self._work_dir = work_dir
 
     @property
+    def file_path(self):
+        return self._file_path
+
+    @property
     def compressed_file_name(self):
         if self._file_path.endswith('bz2') or self._file_path.endswith('gz'):
             # keep the compressed file as is
@@ -84,7 +88,7 @@ class GlacierUploader:
         self.upload_csv_to_s3(self._bucket_name, listing_file_name, listing_file_obj)
         return listing_file_obj
 
-    def encrypt_and_compress_path(self, row_file_data):
+    def _compress_path(self, row_file_data):
         logger.info("Create directory for run: {}".format(self._work_dir))
 
         try:
@@ -92,13 +96,8 @@ class GlacierUploader:
         except FileExistsError:
             pass
 
-        # Init GPG class
-        gpg = gnupg.GPG()
-        key_to_use = gpg.list_keys()[0]  # Assumption is the proper key is the only one here
-        fingerprint = key_to_use['fingerprint']
-        logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_to_use['uids']))
-
         # set up tarred output file
+        # TODO: move this into class
         dest_tar_file = row_file_data.compressed_file_full_path
         if os.path.isfile(row_file_data.file_path):
             dest_tar_file = row_file_data.file_path
@@ -108,24 +107,82 @@ class GlacierUploader:
 
         # only tar when it is a directory and it doesnt exist
         if not os.path.exists(dest_tar_file):
-            logger.info("Start tarring path: {}. Output path: {}".format(file_path, dest_tar_file))
+            logger.info("Start tarring path: {}. Output path: {}".format(row_file_data.file_path, dest_tar_file))
 
             with tarfile.open(dest_tar_file, 'w:gz') as tar:
                 tar.add(row_file_data.file_path)
             logger.info("Finished path: {}. Output path: {}".format(row_file_data.file_path, dest_tar_file))
+
+    def _encrypt_path(self, row_file_data):
+        # Init GPG class
+        gpg = gnupg.GPG()
+        key_to_use = gpg.list_keys()[0]  # Assumption is the proper key is the only one here
+        fingerprint = key_to_use['fingerprint']
+        logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_to_use['uids']))
+
+        # set up tarred output file
+        dest_tar_file = row_file_data.compressed_file_full_path
+        # if os.path.isfile(row_file_data.file_path):
+        #     dest_tar_file = row_file_data.file_path
+        #     logger.info("Not compressing file {} as it is aleady compressed".format(dest_tar_file))
 
         # setup encrypted file path
         dest_gpg_encrypted_output = row_file_data.encrypted_file_full_path
         logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
         if not os.path.exists(dest_gpg_encrypted_output):
-            logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
+            logger.info(
+                "Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
             with open(dest_tar_file, 'rb') as tar_file:
                 ret = gpg.encrypt_file(tar_file, output=dest_gpg_encrypted_output, armor=False, recipients=fingerprint)
             logger.info("{} {} {}".format(ret.ok, ret.status, ret.stderr))
-        logger.info("Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
+        logger.info(
+            "Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
 
         return dest_gpg_encrypted_output
+
+    # def encrypt_and_compress_path(self, row_file_data):
+    #     logger.info("Create directory for run: {}".format(self._work_dir))
+    #
+    #     try:
+    #         os.mkdir(self._work_dir)
+    #     except FileExistsError:
+    #         pass
+    #
+    #     # Init GPG class
+    #     gpg = gnupg.GPG()
+    #     key_to_use = gpg.list_keys()[0]  # Assumption is the proper key is the only one here
+    #     fingerprint = key_to_use['fingerprint']
+    #     logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_to_use['uids']))
+    #
+    #     # set up tarred output file
+    #     dest_tar_file = row_file_data.compressed_file_full_path
+    #     if os.path.isfile(row_file_data.file_path):
+    #         dest_tar_file = row_file_data.file_path
+    #         logger.info("Not compressing file {} as it is aleady compressed".format(dest_tar_file))
+    #
+    #     logger.info("Output tar file is {}".format(dest_tar_file))
+    #
+    #     # only tar when it is a directory and it doesnt exist
+    #     if not os.path.exists(dest_tar_file):
+    #         logger.info("Start tarring path: {}. Output path: {}".format(file_path, dest_tar_file))
+    #
+    #         with tarfile.open(dest_tar_file, 'w:gz') as tar:
+    #             tar.add(row_file_data.file_path)
+    #         logger.info("Finished path: {}. Output path: {}".format(row_file_data.file_path, dest_tar_file))
+    #
+    #     # setup encrypted file path
+    #     dest_gpg_encrypted_output = row_file_data.encrypted_file_full_path
+    #     logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
+    #
+    #     if not os.path.exists(dest_gpg_encrypted_output):
+    #         logger.info("Start GPG encrypting path: {} Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
+    #         with open(dest_tar_file, 'rb') as tar_file:
+    #             ret = gpg.encrypt_file(tar_file, output=dest_gpg_encrypted_output, armor=False, recipients=fingerprint)
+    #         logger.info("{} {} {}".format(ret.ok, ret.status, ret.stderr))
+    #     logger.info("Finished GPG encrypting path: {}  Output path: {}".format(dest_tar_file, dest_gpg_encrypted_output))
+    #
+    #     return dest_gpg_encrypted_output
 
     def upload_file_to_s3(self, gpg_file_name, bucket_name, extra_args=None):
         if extra_args is None:
@@ -173,8 +230,10 @@ class GlacierUploader:
 
             logger.info("Calling encrypt and compress with {}. Dest file name will be {}".format(row.file_path,
                                                                                                  row.compressed_file_name))
-
-            gpg_file_name = self.encrypt_and_compress_path(row)
+            self._compress_path(row)
+            self._encrypt_path(row)
+            gpg_file_name = row.encrypted_file_full_path
+            # gpg_file_name = self.encrypt_and_compress_path(row)
             if os.path.isdir(row.file_path):
                 # don't upload the file_path if it happens to be a file (possibly compressed already)
                 self.write_directory_list_to_file(row.file_path)
