@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from glacier_script import FileData
+from bin.glacier_script import FileData
 
 
 class FileDataTestCase(TestCase):
