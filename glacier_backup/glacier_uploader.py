@@ -134,7 +134,7 @@ class GlacierUploader:
                 file_path = row['file_path']
 
                 file_type = row['type']
-                input_file_list.append(FileData(file_path=file_path, file_type=file_type, work_dir=self._work_dir))
+                input_file_list.append(FileData(folder_or_file_path=file_path, file_type=file_type, work_dir=self._work_dir, listings_root_path='listings'))
 
         for row in input_file_list:
             if row.type == 'photos':
