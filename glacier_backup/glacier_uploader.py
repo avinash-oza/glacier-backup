@@ -119,14 +119,7 @@ class GlacierUploader:
             self.s3.upload_fileobj(f, Bucket=bucket_name, Key=file_name_key, ExtraArgs=extra_args, Config=self._transfer_config)
             logger.info("Finished uploading {} to S3".format(gpg_file_name))
 
-    def upload_s3_glacier(self, args):
-        """
-        Uploads backups to the S3 based glacier that allows us to keep track of filenames
-        :param args:
-        :return:
-        """
-        input_file_path = args.input_file_path
-
+    def _create_input_file_list(self, input_file_path):
         input_file_list = []
         with open(input_file_path, 'r') as f:
             reader = csv.DictReader(f)
@@ -134,7 +127,20 @@ class GlacierUploader:
                 file_path = row['file_path']
 
                 file_type = row['type']
-                input_file_list.append(FileData(folder_or_file_path=file_path, file_type=file_type, work_dir=self._work_dir, listings_root_path='listings'))
+                input_file_list.append(
+                    FileData(folder_or_file_path=file_path, file_type=file_type, work_dir=self._work_dir,
+                             listings_root_path='listings'))
+        return input_file_list
+
+
+    def upload_s3_glacier(self, input_file_path):
+        """
+        Uploads backups to the S3 based glacier that allows us to keep track of filenames
+        :param input_file_path: location of the input file
+        :return:
+        """
+
+        input_file_list = self._create_input_file_list(input_file_path)
 
         for row in input_file_list:
             if row.type == 'photos':
