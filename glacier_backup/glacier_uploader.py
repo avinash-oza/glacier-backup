@@ -1,4 +1,5 @@
 import argparse
+import logging
 import csv
 import gzip
 import io
@@ -12,6 +13,10 @@ import gnupg
 from boto3.s3.transfer import TransferConfig, MB
 from botocore.exceptions import ClientError
 
+from glacier_backup.file_data import FileData
+
+logger = logging.getLogger(__name__)
+
 class GlacierUploader:
     # input_field_names = ['file_path','vault_name','type']
 
@@ -22,6 +27,7 @@ class GlacierUploader:
         self._bucket_name = bucket_name
         # self._work_dir = os.path.join(temp_dir, datetime.date.today().strftime('%Y-%m-%d'))
         self._work_dir = temp_dir
+        self._listings_dir = 'listings'
 
     def upload_csv_to_s3(self, bucket_name, file_name, file_obj):
         file_obj.seek(io.SEEK_SET)  # reset to beginning
@@ -32,16 +38,16 @@ class GlacierUploader:
         self.s3.upload_fileobj(encoded_data, bucket_name, file_name)
         logger.info("Successfully wrote {} to bucket {}".format(file_name, bucket_name))
 
-    def write_directory_list_to_file(self, file_path):
+    def write_directory_list_to_file(self, file_data: FileData):
         """writes the directory listing out to a buffer for upload to S3"""
-        listing_file_name = os.path.join('listings', '.'.join([os.path.basename(file_path).replace(' ', '_'), 'gz']))
+        listing_file_name = file_data.listing_file_name
         listing_file_obj = io.BytesIO()
 
         logger.info("Creating file containing the list of files {}".format(listing_file_name))
 
         with gzip.GzipFile(filename=listing_file_name, mode='w', fileobj=listing_file_obj) as gzipped_listing:
             # with gzip.open(listing_file_path, 'wt') as f:
-            result = subprocess.run('du -ah {}'.format(file_path), shell=True, capture_output=True)
+            result = subprocess.run('du -ah {}'.format(file_data.file_path), shell=True, capture_output=True)
             gzipped_listing.write(result.stdout)
 
         logger.info("Done creating file {}".format(listing_file_name))
@@ -154,7 +160,7 @@ class GlacierUploader:
             # gpg_file_name = self.encrypt_and_compress_path(row)
             if os.path.isdir(row.file_path):
                 # don't upload the file_path if it happens to be a file (possibly compressed already)
-                self.write_directory_list_to_file(row.file_path)
+                self.write_directory_list_to_file(row)
             self.upload_file_to_s3(gpg_file_name,
                                    self._bucket_name,
                                    extra_args={'StorageClass': row.storage_class},
