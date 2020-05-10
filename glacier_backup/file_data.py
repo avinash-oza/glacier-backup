@@ -63,3 +63,21 @@ class FileData:
     @property
     def storage_class(self):
         return 'DEEP_ARCHIVE' if self._file_type == 'photos' else 'GLACIER'
+
+    def compress(self, work_dir):
+        """
+        Compresses the file in work_dir and returns the path to compressed file
+        :param work_dir:
+        :return: str
+        """
+        pass
+
+    def encrypt(self, file_path, work_dir, key_id):
+        """
+        Encrypts the passed in file with key_id
+        :param key_id:
+        :param file_path:
+        :param work_dir:
+        :return: str of encrypted file
+        """
+        pass
