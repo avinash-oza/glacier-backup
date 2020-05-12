@@ -14,4 +14,4 @@ if __name__ == '__main__':
 
     g = GlacierUploader(bucket_name='abcd', temp_dir=args.temp_dir)
 
-    g.upload_s3_glacier(args.input_file_path)
+    g.run(args.input_file_path)
