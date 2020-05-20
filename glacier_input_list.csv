@@ -1,2 +1,4 @@
-file_path,vault_name,type
-/my/sample/dir,VAULT_NAME,photos
+file_path,storage_class
+/mnt/scratch/git_repos/garage-door-service,STANDARD
+/mnt/scratch/git_repos/pi-funcs,STANDARD
+/mnt/scratch/ansible-books.tar.gz,STANDARD

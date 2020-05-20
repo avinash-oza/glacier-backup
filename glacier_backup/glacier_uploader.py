@@ -35,18 +35,17 @@ class GlacierUploader:
         with open(input_file_path, 'r') as f:
             reader = csv.DictReader(f)
             for row in reader:
-                file_path = row['file_path']
-
-                if row['type'].upper() not in ['GLACIER', 'DEEP_ARCHIVE']:
-                    raise ValueError(f"Invalid storage class passed in for {file_path}")
-                file_type = row['type'].upper()
-                input_file_list.append(
-                    FileData(folder_or_file_path=file_path, file_type=file_type, work_dir=self._work_dir,
-                             listings_root_path=self._listings_dir))
+                kwargs = {
+                    'folder_or_file_path': row['file_path'],
+                    'storage_class': row['storage_class'],
+                    'work_dir': self._work_dir,
+                    'listings_root_path': self._listings_dir
+                }
+                input_file_list.append(FileData(**kwargs))
         return input_file_list
 
     def _should_upload_file(self, file_data):
-        if file_data.type != 'DEEP_ARCHIVE':
+        if file_data.storage_class != 'DEEP_ARCHIVE':
             return True
 
         expected_file_name = file_data.encrypted_file_name
@@ -63,7 +62,6 @@ class GlacierUploader:
                     metadata['LastModified'].isoformat(),
                     metadata['StorageClass']))
             return False
-
 
     def run(self, input_file_path, key):
         """

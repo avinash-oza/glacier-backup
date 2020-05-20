@@ -15,7 +15,6 @@ class FileDataTestCase(TestCase):
         self.assertEqual(fd.compressed_file_name, 'test_folder.tar.gz')
         self.assertEqual(fd.encrypted_file_name, 'test_folder.tar.gz.gpg')
         self.assertEqual(fd.storage_class, 'DEEP_ARCHIVE')
-        self.assertEqual(fd.type, 'DEEP_ARCHIVE')
         self.assertEqual(fd.folder_name, 'test_folder')
         self.assertEqual(fd.listing_file_name, os.path.join('my_listings', 'test_folder.gz'))
 
@@ -27,7 +26,6 @@ class FileDataTestCase(TestCase):
         self.assertEqual(fd.compressed_file_name, 'test_folder_spaces.tar.gz')
         self.assertEqual(fd.encrypted_file_name, 'test_folder_spaces.tar.gz.gpg')
         self.assertEqual(fd.storage_class, 'DEEP_ARCHIVE')
-        self.assertEqual(fd.type, file_type)
         self.assertEqual(fd.folder_name, 'test_folder_spaces')
         self.assertEqual(fd.listing_file_name, os.path.join('my_listings', 'test_folder_spaces.gz'))
 
@@ -39,7 +37,6 @@ class FileDataTestCase(TestCase):
         self.assertEqual(fd.compressed_file_name, 'test_folder.bz2')
         self.assertEqual(fd.encrypted_file_name, 'test_folder.bz2.gpg')
         self.assertEqual(fd.storage_class, 'DEEP_ARCHIVE')
-        self.assertEqual(fd.type, file_type.upper())
         self.assertEqual(fd.folder_name, 'test_folder.bz2')
         self.assertEqual(fd.listing_file_name, os.path.join('my_listings', 'test_folder.bz2.gz'))
 
@@ -51,7 +48,6 @@ class FileDataTestCase(TestCase):
         self.assertEqual(fd.compressed_file_name, 'test_folder_spaces.bz2')
         self.assertEqual(fd.encrypted_file_name, 'test_folder_spaces.bz2.gpg')
         self.assertEqual(fd.storage_class, 'DEEP_ARCHIVE')
-        self.assertEqual(fd.type, file_type)
         self.assertEqual(fd.folder_name, 'test_folder_spaces.bz2')
         self.assertEqual(fd.listing_file_name, os.path.join('my_listings', 'test_folder_spaces.bz2.gz'))
 
@@ -63,6 +59,5 @@ class FileDataTestCase(TestCase):
         self.assertEqual(fd.compressed_file_name, 'test_folder.gz')
         self.assertEqual(fd.encrypted_file_name, 'test_folder.gz.gpg')
         self.assertEqual(fd.storage_class, 'DEEP_ARCHIVE')
-        self.assertEqual(fd.type, file_type)
         self.assertEqual(fd.folder_name, 'test_folder.gz')
         self.assertEqual(fd.listing_file_name, os.path.join('my_listings', 'test_folder.gz.gz'))
