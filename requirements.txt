@@ -16,7 +16,7 @@ dicttoxml==1.7.4
 docker==4.0.2
 docker-pycreds==0.4.0
 docutils==0.15.2
-ecdsa==0.13
+ecdsa==0.13.3
 Flask==1.1.1
 future==0.18.2
 idna==2.8
