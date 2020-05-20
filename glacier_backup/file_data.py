@@ -1,16 +1,10 @@
-import argparse
-import csv
 import gzip
-import io
 import logging
 import os
 import subprocess
 import tarfile
 
-import boto3
 import gnupg
-from boto3.s3.transfer import TransferConfig, MB
-from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +33,13 @@ class FileData:
 
     @property
     def compressed_file_name(self):
-        if self.compressed():
+        if self.is_compressed():
             # keep the compressed file as is
             return self.folder_name
 
         return '.'.join([self.folder_name, 'tar.gz'])
 
-    def compressed(self):
+    def is_compressed(self):
         return self._file_path.endswith('bz2') or self._file_path.endswith('gz')
 
     @property
@@ -62,11 +56,11 @@ class FileData:
 
     @property
     def type(self):
-        return self._file_type
+        return self._file_type.upper()
 
     @property
     def storage_class(self):
-        return 'DEEP_ARCHIVE' if self._file_type == 'photos' else 'GLACIER'
+        return self.type
 
     def compress(self):
         """
@@ -76,7 +70,7 @@ class FileData:
         """
         logger.info("Start compressing")
 
-        if self.compressed():
+        if self.is_compressed():
             logger.info("Not compressing as file is already compressed")
             return self._file_path
 
@@ -99,6 +93,7 @@ class FileData:
         :param work_dir:
         :return: str of encrypted file
         """
+        key = key.upper()
 
         dest_file_name = '.'.join([file_path, 'gpg'])
         dest_file_path = os.path.join(self._work_dir, dest_file_name)
@@ -109,8 +104,13 @@ class FileData:
 
         # Init GPG class
         gpg = gnupg.GPG()
-        fingerprint = key['fingerprint']
-        logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key['uids']))
+        try:
+            key_data = gpg.list_keys().key_map[key]
+        except KeyError:
+            raise ValueError(f"Invalid GPG key id passed in:{key}")
+
+        fingerprint = key_data['fingerprint']
+        logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_data['uids']))
         logger.info("Start GPG encrypting path: {} Output path: {}".format(file_path, dest_file_path))
 
         with open(file_path, 'rb') as tar_file:
@@ -145,20 +145,3 @@ class FileData:
 
         logger.info("Done creating file {}".format(output_file_path))
         return output_file_path
-
-# if __name__ == '__main__':
-#     import gnupg
-#
-#     gpg = gnupg.GPG()
-#     key_to_use = gpg.list_keys()[0]
-#     logging.basicConfig()
-#     logger.setLevel(logging.DEBUG)
-#
-#     # fd = FileData(r'/mnt/scratch/mta_test', 'a', 'a', 'a')
-#     fd = FileData(r'/mnt/scratch/mta_test', '/mnt/vm_drives', '/mnt/vm_drives')
-#
-#     # res = fd.compress(r'/mnt/vm_drives')
-#     # res = fd.encrypt(r'/mnt/vm_drives/mta_test.tar.gz', key_to_use)
-#     res = fd.create_dir_listing('/mnt/vm_drives')
-#
-#     logger.warning(res)
