@@ -41,7 +41,9 @@ class GlacierUploader:
                     'work_dir': self._work_dir,
                     'listings_root_path': self._listings_dir
                 }
+                logger.info(f"Added path {kwargs['folder_or_file_path']} with level:{kwargs['storage_class']} to paths to process")
                 input_file_list.append(FileData(**kwargs))
+        logger.info(f"Finished loading {len(input_file_list)} paths to process")
         return input_file_list
 
     def _should_upload_file(self, file_data):
