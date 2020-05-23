@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
         name='glacier-backup',
-        version='0.1b1',
+        version='0.1b2',
         packages=['glacier_backup',],
-        scripts=['bin/glacier_script.py'],
+        scripts=['bin/backup_runner.py'],
         license='TBD',
         long_description='TBD'
         )

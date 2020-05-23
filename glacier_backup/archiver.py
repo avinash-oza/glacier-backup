@@ -1,6 +1,6 @@
 import csv
-import os
 import logging
+import os
 
 import boto3
 from boto3.s3.transfer import TransferConfig, MB
@@ -10,7 +10,7 @@ from glacier_backup.file_data import FileData
 
 logger = logging.getLogger(__name__)
 
-class GlacierUploader:
+class S3Archiver:
     # input_field_names = ['file_path','type']
 
     def __init__(self, bucket_name='glacier-backups-651d8f3', temp_dir=None):

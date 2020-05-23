@@ -4,7 +4,7 @@ import tempfile
 import boto3
 import os
 
-from glacier_backup.glacier_uploader import GlacierUploader
+from glacier_backup.archiver import S3Archiver
 
 def get_from_s3_url(s3_url):
     try:
@@ -43,6 +43,6 @@ if __name__ == '__main__':
         logger.info("Finished downloading input file from S3")
 
 
-    g = GlacierUploader(bucket_name=args.bucket_name, temp_dir=temp_dir.name)
+    g = S3Archiver(bucket_name=args.bucket_name, temp_dir=temp_dir.name)
 
     g.run(input_path, args.gpg_key_id)
