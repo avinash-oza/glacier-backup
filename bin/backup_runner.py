@@ -17,7 +17,9 @@ def get_from_s3_url(s3_url):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO,
+    format="[%(asctime)s] %(levelname)s %(name)s.%(funcName)s %(message)s"
+    )
     logger = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser()
