@@ -28,8 +28,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    temp_dir = tempfile.TemporaryDirectory(prefix=args.temp_dir)
-    logger.info(f"Temp dir is {temp_dir.name}")
+    if os.path.exists(args.temp_dir):
+        logger.info("Not creating temp dir as it exists")
+        temp_dir = args.temp_dir
+    else:
+        temp_path = tempfile.TemporaryDirectory(prefix=args.temp_dir)
+        temp_dir = temp_path.name
+        logger.info(f"Temp dir is {temp_dir}")
 
     input_path = args.input_file_path
 
@@ -38,11 +43,11 @@ if __name__ == '__main__':
         bucket, path = get_from_s3_url(args.input_file_path)
         # download the file
         s3 = boto3.client('s3')
-        input_path = os.path.join(temp_dir.name, 'INPUT_LIST.CSV')
+        input_path = os.path.join(temp_dir, 'INPUT_LIST.CSV')
         s3.download_file(bucket, path, input_path)
         logger.info("Finished downloading input file from S3")
 
 
-    g = S3Archiver(bucket_name=args.bucket_name, temp_dir=temp_dir.name)
+    g = S3Archiver(bucket_name=args.bucket_name, temp_dir=temp_dir)
 
     g.run(input_path, args.gpg_key_id)
