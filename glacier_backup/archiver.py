@@ -19,7 +19,7 @@ class S3Archiver:
         self._bucket_name = bucket_name
         self._work_dir = temp_dir
         self._listings_dir = os.path.join(self._work_dir, 'listings')
-        os.makedirs(self._listings_dir)
+        os.makedirs(self._listings_dir, exist_ok=True)
 
     def upload_file_to_s3(self, bucket_name, bucket_key, upload_file_path, extra_args=None):
         if extra_args is None:
