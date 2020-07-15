@@ -33,10 +33,6 @@ class FileData:
         return os.path.basename(self._file_path).replace(' ', '_')
 
     @property
-    def listing_file_name(self):
-        return os.path.join(self._listings_root_path, '.'.join([self.folder_name, 'gz']))
-
-    @property
     def compressed_file_name(self):
         if self.is_compressed():
             # keep the compressed file as is
@@ -48,16 +44,8 @@ class FileData:
         return self._file_path.endswith('bz2') or self._file_path.endswith('gz')
 
     @property
-    def compressed_file_full_path(self):
-        return os.path.join(self._work_dir, self.compressed_file_name)
-
-    @property
     def encrypted_file_name(self):
         return '.'.join([self.compressed_file_name, 'gpg'])
-
-    @property
-    def encrypted_file_full_path(self):
-        return os.path.join(self._work_dir, self.encrypted_file_name)
 
     @property
     def storage_class(self):
@@ -67,7 +55,7 @@ class FileData:
         """
         Compresses the file in work_dir and returns the path to compressed file
 
-        :return: str
+        :return: path to the compressed file
         """
         logger.info("Start compressing")
 
@@ -89,10 +77,9 @@ class FileData:
     def encrypt(self, file_path, key):
         """
         Encrypts the passed in file with key_id
-        :param key:
-        :param file_path:
-        :param work_dir:
-        :return: str of encrypted file
+        :param str key: key to use for encryption
+        :param file_path: the file path to encrypt
+        :return: full path of the encrypted file
         """
         key = key.upper()
 
@@ -140,7 +127,6 @@ class FileData:
         logger.info("Creating file containing the list of files {}".format(output_file_path))
 
         with gzip.GzipFile(filename=output_file_path, mode='w') as gzipped_listing:
-            # with gzip.open(listing_file_path, 'wt') as f:
             result = subprocess.run('du -ah {}'.format(self._file_path), shell=True, capture_output=True)
             gzipped_listing.write(result.stdout)
 
