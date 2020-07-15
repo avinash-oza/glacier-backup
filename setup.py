@@ -4,7 +4,7 @@ setup(
         name='glacier-backup',
         version='0.1b2',
         packages=['glacier_backup',],
-        scripts=['bin/backup_runner.py'],
+        scripts=['bin/main.py'],
         license='TBD',
         long_description='TBD'
         )

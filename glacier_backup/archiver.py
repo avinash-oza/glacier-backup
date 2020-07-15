@@ -2,33 +2,21 @@ import csv
 import logging
 import os
 
-import boto3
-from boto3.s3.transfer import TransferConfig, MB
-from botocore.exceptions import ClientError
-
 from glacier_backup.file_data import FileData
+from glacier_backup.s3_uploader import S3Client
 
 logger = logging.getLogger(__name__)
 
-class S3Archiver:
-    # input_field_names = ['file_path','type']
 
-    def __init__(self, bucket_name='glacier-backups-651d8f3', temp_dir=None):
-        self.s3 = boto3.client('s3')
-        self._transfer_config = TransferConfig(max_concurrency=2, multipart_chunksize=64*MB, max_io_queue=2, num_download_attempts=1)
-        self._bucket_name = bucket_name
+class BackupRunner:
+    def __init__(self, bucket_name='glacier-backups-651d8f3', temp_dir=None, uploader=None):
+        self._client = uploader
+        if uploader is None:
+            self._client = S3Client(bucket_name)
+
         self._work_dir = temp_dir
         self._listings_dir = os.path.join(self._work_dir, 'listings')
         os.makedirs(self._listings_dir, exist_ok=True)
-
-    def upload_file_to_s3(self, bucket_name, bucket_key, upload_file_path, extra_args=None):
-        if extra_args is None:
-            extra_args = {}
-
-        with open(upload_file_path, 'rb') as f:
-            logger.info(f"Start uploading {upload_file_path} to S3 as key={bucket_key}")
-            self.s3.upload_fileobj(f, Bucket=bucket_name, Key=bucket_key, ExtraArgs=extra_args, Config=self._transfer_config)
-            logger.info(f"Finish uploading {upload_file_path} to S3 as key={bucket_key}")
 
     def _load_input_file(self, input_file_path):
         input_file_list = []
@@ -51,19 +39,17 @@ class S3Archiver:
             return True
 
         expected_file_name = file_data.encrypted_file_name
-        try:
-            metadata = self.s3.head_object(Bucket=self._bucket_name, Key=expected_file_name)
-        except ClientError:
+        file_metadata = self._client.get_file_metadata(expected_file_name)
+
+        if not file_metadata:
             logger.info(f"Did not find file existing already, will upload={file_data.file_path}")
             return True
-        else:
-            # object exists so print out the datetime
-            logger.info(
-                "Found archive {} that was last uploaded on {} with class: {}. It will not be uploaded again".format(
-                    expected_file_name,
-                    metadata['LastModified'].isoformat(),
-                    metadata['StorageClass']))
-            return False
+
+        # object exists so print out the datetime
+        logger.info(
+            f"Found archive {expected_file_name} that was last uploaded on {file_metadata['LastModified'].isoformat()} with class: {file_metadata['StorageClass']}. It will not be uploaded again"
+        )
+        return False
 
     def run(self, input_file_path, key):
         """
@@ -87,13 +73,12 @@ class S3Archiver:
             if dir_listing is not None:
                 logger.info("Uploading listing information")
                 listing_file_key = '/'.join(['listings', '.'.join([row.folder_name, 'gz'])])
-                self.upload_file_to_s3(self._bucket_name, listing_file_key, dir_listing)
+                self._client.upload_file(listing_file_key, dir_listing)
                 logger.info(f"Finished uploading listing information as key={listing_file_key}")
 
-            self.upload_file_to_s3(self._bucket_name,
-                                   row.encrypted_file_name,
-                                   encrypted_path,
-                                   extra_args={'StorageClass': row.storage_class}
-                                   )
+            self._client.upload_file(row.encrypted_file_name,
+                                     encrypted_path,
+                                     extra_args={'StorageClass': row.storage_class}
+                                     )
 
         logger.info("ALL DONE")

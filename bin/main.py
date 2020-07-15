@@ -1,10 +1,9 @@
 import argparse
 import logging
-import tempfile
 import boto3
 import os
 
-from glacier_backup.archiver import S3Archiver
+from glacier_backup.archiver import BackupRunner
 
 def get_from_s3_url(s3_url):
     try:
@@ -23,22 +22,17 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bucket-name', type=str, default='test-backups-2296778', help='The bucket to use for backups')
+    parser.add_argument('--bucket-name', type=str, help='The bucket to use for backups')
     parser.add_argument('--gpg-key-id', type=str, required=True, help='Fingerprint of the key to use')
     parser.add_argument('--input-file-path', type=str, required=True, help='File containing directory list or s3 in the format of s3://BUCKET_NAME#PATH')
-    parser.add_argument('--temp-dir', type=str, default=r'/mnt/scratch/', help='dir to use for scratch space (needs to exist)')
+    parser.add_argument('--temp-dir', type=str, help='dir to use for scratch space')
 
     args = parser.parse_args()
-
-    if os.path.exists(args.temp_dir):
-        logger.info("Not creating temp dir as it exists")
-        temp_dir = args.temp_dir
-    else:
-        temp_path = tempfile.TemporaryDirectory(prefix=args.temp_dir)
-        temp_dir = temp_path.name
-        logger.info(f"Temp dir is {temp_dir}")
-
+    temp_dir = args.temp_dir
     input_path = args.input_file_path
+
+    if not os.path.exists(temp_dir):
+        raise ValueError(f"temp dir does not exist, create before running")
 
     if input_path.startswith('s3://'):
         logger.info("Start downloading input file from S3")
@@ -49,7 +43,6 @@ if __name__ == '__main__':
         s3.download_file(bucket, path, input_path)
         logger.info("Finished downloading input file from S3")
 
-
-    g = S3Archiver(bucket_name=args.bucket_name, temp_dir=temp_dir)
+    g = BackupRunner(bucket_name=args.bucket_name, temp_dir=temp_dir)
 
     g.run(input_path, args.gpg_key_id)
