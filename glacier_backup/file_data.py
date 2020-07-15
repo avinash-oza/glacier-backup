@@ -96,7 +96,7 @@ class FileData:
         """
         key = key.upper()
 
-        dest_file_name = '.'.join([file_path, 'gpg'])
+        dest_file_name = '.'.join([os.path.basename(file_path), 'gpg'])
         dest_file_path = os.path.join(self._work_dir, dest_file_name)
 
         if os.path.exists(dest_file_path):
