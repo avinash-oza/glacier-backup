@@ -64,8 +64,6 @@ class BackupRunner:
             if not self._should_upload_file(row):
                 continue
 
-            logger.info(
-                f"Calling encrypt and compress with {row.file_path}. Dest file name will be {row.compressed_file_name}")
             compressed_path = row.compress()
             encrypted_path = row.encrypt(compressed_path, key)
 

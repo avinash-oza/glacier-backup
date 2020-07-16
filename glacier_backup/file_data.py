@@ -57,20 +57,20 @@ class FileData:
 
         :return: path to the compressed file
         """
-        logger.info("Start compressing")
-
         if self.is_compressed():
-            logger.info("Not compressing as file is already compressed")
+            logger.warning(f"{self.file_path} is already compressed. Not compressing again")
             return self._file_path
 
         # only tar when it is a directory and it doesnt exist
         dest_tar_file_path = os.path.join(self._work_dir, self.compressed_file_name)
         if not os.path.exists(dest_tar_file_path):
-            logger.info("Start tarring path: {}. Output path: {}".format(self._file_path, dest_tar_file_path))
+            logger.info(f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}")
 
             with tarfile.open(dest_tar_file_path, 'w:gz') as tar:
                 tar.add(self._file_path)
             logger.info("Finished path: {}. Output path: {}".format(self._file_path, dest_tar_file_path))
+        else:
+            logger.warning(f"Compressed path: {dest_tar_file_path} already exists. Not compressing again")
 
         return dest_tar_file_path
 
@@ -87,7 +87,7 @@ class FileData:
         dest_file_path = os.path.join(self._work_dir, dest_file_name)
 
         if os.path.exists(dest_file_path):
-            logger.info("Found encrypted version of current file and will not rerun")
+            logger.warning(f"Encrypted path: {dest_file_path} already exists. Not encrypting again again")
             return dest_file_path
 
         # Init GPG class
@@ -99,14 +99,13 @@ class FileData:
 
         fingerprint = key_data['fingerprint']
         logger.info("Fingerprint of key is {} and uid is {}".format(fingerprint, key_data['uids']))
-        logger.info("Start GPG encrypting path: {} Output path: {}".format(file_path, dest_file_path))
 
         with open(file_path, 'rb') as tar_file:
+            logger.info(f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}")
             ret = gpg.encrypt_file(tar_file, output=dest_file_path, armor=False, recipients=fingerprint)
 
-        logger.info("Encryption status: {} {} {}".format(ret.ok, ret.status, ret.stderr))
-
-        logger.info("Finished GPG encrypting path: {}  Output path: {}".format(file_path, dest_file_path))
+        logger.debug("Encryption status: {ret.ok} {ret.status} {ret.stderr}")
+        logger.info(f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}")
 
         return dest_file_path
 
