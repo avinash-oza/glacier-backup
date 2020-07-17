@@ -104,7 +104,10 @@ class FileData:
             logger.info(f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}")
             ret = gpg.encrypt_file(tar_file, output=dest_file_path, armor=False, recipients=fingerprint)
 
-        logger.debug("Encryption status: {ret.ok} {ret.status} {ret.stderr}")
+        if not ret.ok:
+            raise RuntimeError(f"Error when encrypting: {ret.stderr}")
+
+        logger.debug(f"Encryption status: {ret.ok} {ret.status} {ret.stderr}")
         logger.info(f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}")
 
         return dest_file_path
