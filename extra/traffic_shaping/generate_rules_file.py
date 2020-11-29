@@ -5,7 +5,7 @@ import requests
 url = r'https://ip-ranges.amazonaws.com/ip-ranges.json'
 
 data = requests.get(url).json()
-INTERFACE = 'eno1'
+INTERFACE = 'enp4s0'
 
 ip_rules = []
 

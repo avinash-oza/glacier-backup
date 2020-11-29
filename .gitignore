@@ -1,3 +1,4 @@
 *.idea*
 /glacier_backup.egg-info/
 /dist/
+extra/traffic_shaping/ip_rules.sh
