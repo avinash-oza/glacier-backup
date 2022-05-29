@@ -11,18 +11,30 @@ logger = logging.getLogger(__name__)
 
 class FileData:
     SUPPORTED_STORAGE_CLASSES = ["GLACIER", "DEEP_ARCHIVE", "STANDARD"]
+    SUPPORTED_STORAGE_PROVIDERS = ["S3", "ONEDRIVE"]
 
     def __init__(
-        self, folder_or_file_path, storage_class, work_dir, listings_root_path
+        self,
+        folder_or_file_path,
+        storage_class,
+        work_dir,
+        listings_root_path,
+        storage_provider="S3",
     ):
         if storage_class.upper() not in self.SUPPORTED_STORAGE_CLASSES:
             raise ValueError(
                 f"Path: {folder_or_file_path}, storage class: {storage_class} not supported"
             )
 
+        if storage_provider.upper() not in self.SUPPORTED_STORAGE_PROVIDERS:
+            raise ValueError(
+                f"Path: {folder_or_file_path}, storage provider: {storage_provider} not supported"
+            )
+
         self._file_path = folder_or_file_path
         self._work_dir = work_dir
         self._storage_class = storage_class.upper()
+        self._storage_provider = storage_provider.upper()
         self._listings_root_path = listings_root_path
 
     @property
