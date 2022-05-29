@@ -54,6 +54,9 @@ class BackupRunner:
             compressed_path = row.compress()
             row.encrypt(compressed_path, key)
 
+            os.remove(compressed_path)
+            logger.info(f"Removed compressed file: {compressed_path}")
+
             row.create_dir_listing(self._listings_dir)
 
         logger.info("ALL DONE")
