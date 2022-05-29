@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 class BackupRunner:
     def __init__(
-        self, bucket_name="glacier-backups-651d8f3", temp_dir=None, uploader=None
+        self, bucket_name="glacier-backups-651d8f3", temp_dir=None, upload_client=None
     ):
-        self._client = uploader
-        if uploader is None:
+        self._client = upload_client
+        if upload_client is None:
             self._client = S3Client(bucket_name)
 
         self._work_dir = temp_dir
