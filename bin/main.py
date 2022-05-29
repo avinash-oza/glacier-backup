@@ -1,9 +1,9 @@
 import argparse
 import logging
-import boto3
 import os
 
-from glacier_backup.dummy_s3_client import DummyS3Client
+import boto3
+
 from glacier_backup.backup_runner import BackupRunner
 
 
@@ -36,21 +36,10 @@ if __name__ == "__main__":
         help="File containing directory list or s3 in the format of s3://BUCKET_NAME#PATH",
     )
     parser.add_argument("--temp-dir", type=str, help="dir to use for scratch space")
-    parser.add_argument(
-        "--skip-upload",
-        action="store_true",
-        help="Do not actually upload files, only compress",
-    )
 
     args = parser.parse_args()
     temp_dir = args.temp_dir
     input_path = args.input_file_path
-    skip_upload = args.skip_upload
-
-    upload_client = None  # use default
-    if skip_upload:
-        logger.info(f"Will not upload file after compressing")
-        upload_client = DummyS3Client(None)
 
     if not os.path.exists(temp_dir):
         raise ValueError(f"temp dir does not exist, create before running")
