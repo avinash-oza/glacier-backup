@@ -1,5 +1,6 @@
 import gzip
 import logging
+import os
 import posixpath as os_path
 import subprocess
 import tarfile
@@ -32,10 +33,11 @@ class FileData:
             )
 
         self._file_path = folder_or_file_path
-        self._work_dir = work_dir
         self._storage_class = storage_class.upper()
         self._storage_provider = storage_provider.upper()
         self._listings_root_path = listings_root_path
+        self._work_dir = os_path.join(work_dir, self._storage_provider.lower())
+        os.makedirs(self._work_dir, exist_ok=True)
 
     @property
     def file_path(self):
@@ -81,7 +83,7 @@ class FileData:
             return self._file_path
 
         # only tar when it is a directory and it doesnt exist
-        dest_tar_file_path = os_path.join(self._work_dir, self.compressed_file_name)
+        dest_tar_file_path = self._get_dest_tar_file_path()
         if not os_path.exists(dest_tar_file_path):
             logger.info(
                 f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}"
@@ -99,6 +101,10 @@ class FileData:
                 f"Compressed path: {dest_tar_file_path} already exists. Not compressing again"
             )
 
+        return dest_tar_file_path
+
+    def _get_dest_tar_file_path(self):
+        dest_tar_file_path = os_path.join(self._work_dir, self.compressed_file_name)
         return dest_tar_file_path
 
     def encrypt(self, file_path, key):
@@ -177,3 +183,16 @@ class FileData:
 
         logger.info("Done creating file {}".format(output_file_path))
         return output_file_path
+
+    def cleanup(self):
+        """
+        Cleans up any temporary files created
+        :return:
+        """
+        if self.is_compressed():
+            # do not remove the original input archive file
+            return
+
+        dest_tar_file_path = self._get_dest_tar_file_path()
+        logger.info(f"Removing {dest_tar_file_path}")
+        os.remove(dest_tar_file_path)

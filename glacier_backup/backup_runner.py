@@ -56,4 +56,6 @@ class BackupRunner:
 
             row.create_dir_listing(self._listings_dir)
 
+            row.cleanup()
+
         logger.info("ALL DONE")
