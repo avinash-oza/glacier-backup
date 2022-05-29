@@ -1,6 +1,6 @@
 import gzip
 import logging
-import os
+import posixpath as os_path
 import subprocess
 import tarfile
 
@@ -47,7 +47,7 @@ class FileData:
         returns the last part of the path with spaces replaces
         :return:
         """
-        return os.path.basename(self._file_path).replace(" ", "_")
+        return os_path.basename(self._file_path).replace(" ", "_")
 
     @property
     def compressed_file_name(self):
@@ -81,8 +81,8 @@ class FileData:
             return self._file_path
 
         # only tar when it is a directory and it doesnt exist
-        dest_tar_file_path = os.path.join(self._work_dir, self.compressed_file_name)
-        if not os.path.exists(dest_tar_file_path):
+        dest_tar_file_path = os_path.join(self._work_dir, self.compressed_file_name)
+        if not os_path.exists(dest_tar_file_path):
             logger.info(
                 f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}"
             )
@@ -110,10 +110,10 @@ class FileData:
         """
         key = key.upper()
 
-        dest_file_name = ".".join([os.path.basename(file_path), "gpg"])
-        dest_file_path = os.path.join(self._work_dir, dest_file_name)
+        dest_file_name = ".".join([os_path.basename(file_path), "gpg"])
+        dest_file_path = os_path.join(self._work_dir, dest_file_name)
 
-        if os.path.exists(dest_file_path):
+        if os_path.exists(dest_file_path):
             logger.warning(
                 f"Encrypted path: {dest_file_path} already exists. Not encrypting again again"
             )
@@ -158,12 +158,12 @@ class FileData:
         :return: file path or None
         """
 
-        if not os.path.isdir(self._file_path):
+        if not os_path.isdir(self._file_path):
             logger.warning("Input is not a dir, not creating a dir listing")
             return
 
         listing_file_name = ".".join([self.folder_name, "gz"])
-        output_file_path = os.path.join(listing_dir, listing_file_name)
+        output_file_path = os_path.join(listing_dir, listing_file_name)
 
         logger.info(
             "Creating file containing the list of files {}".format(output_file_path)
