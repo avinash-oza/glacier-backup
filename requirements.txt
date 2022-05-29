@@ -1,5 +1,3 @@
-boto3==1.9.66
-botocore==1.12.189
 brotlipy==0.7.0
 certifi==2020.6.20
 cffi==1.14.0

@@ -2,20 +2,7 @@ import argparse
 import logging
 import os
 
-import boto3
-
 from glacier_backup.backup_runner import BackupRunner
-
-
-def get_from_s3_url(s3_url):
-    try:
-        _, bucket_and_path = s3_url.split("//")
-    except:
-        logger.exception("Wrong s3 url format detected")
-    else:
-        bucket, path = bucket_and_path.split("#")
-        return bucket, path
-
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -33,7 +20,7 @@ if __name__ == "__main__":
         "--input-file-path",
         type=str,
         required=True,
-        help="File containing directory list or s3 in the format of s3://BUCKET_NAME#PATH",
+        help="Local file containing directory list",
     )
     parser.add_argument("--temp-dir", type=str, help="dir to use for scratch space")
 
@@ -43,15 +30,6 @@ if __name__ == "__main__":
 
     if not os.path.exists(temp_dir):
         raise ValueError(f"temp dir does not exist, create before running")
-
-    if input_path.startswith("s3://"):
-        logger.info("Start downloading input file from S3")
-        bucket, path = get_from_s3_url(args.input_file_path)
-        # download the file
-        s3 = boto3.client("s3")
-        input_path = os.path.join(temp_dir, "INPUT_LIST.CSV")
-        s3.download_file(bucket, path, input_path)
-        logger.info("Finished downloading input file from S3")
 
     g = BackupRunner(bucket_name=args.bucket_name, temp_dir=temp_dir)
 
