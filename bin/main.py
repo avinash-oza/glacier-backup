@@ -3,7 +3,7 @@ import logging
 import boto3
 import os
 
-from dummy_s3_client import DummyS3Client
+from glacier_backup.dummy_s3_client import DummyS3Client
 from glacier_backup.backup_runner import BackupRunner
 
 
