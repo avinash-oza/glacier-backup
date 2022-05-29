@@ -3,7 +3,7 @@ import logging
 import boto3
 import os
 
-from glacier_backup.archiver import BackupRunner
+from glacier_backup.backup_runner import BackupRunner
 
 def get_from_s3_url(s3_url):
     try:

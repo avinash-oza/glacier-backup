@@ -3,7 +3,7 @@ import logging
 import os
 
 from glacier_backup.file_data import FileData
-from glacier_backup.s3_uploader import S3Client
+from glacier_backup.s3_client import S3Client
 
 logger = logging.getLogger(__name__)
 
