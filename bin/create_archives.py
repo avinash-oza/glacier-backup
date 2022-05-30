@@ -31,6 +31,6 @@ if __name__ == "__main__":
     if not os.path.exists(temp_dir):
         raise ValueError(f"temp dir does not exist, create before running")
 
-    g = BackupRunner(bucket_name=args.bucket_name, temp_dir=temp_dir)
+    g = BackupRunner(temp_dir=temp_dir)
 
     g.run(input_path, args.gpg_key_id)
