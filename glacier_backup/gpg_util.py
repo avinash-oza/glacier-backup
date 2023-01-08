@@ -18,7 +18,7 @@ class GpgUtil:
         if result.count == 0:
             raise ValueError(f"Could not get any keys for:{key}")
 
-        key_data = result.results[0]
+        key_data = gpg.list_keys(keys=key).key_map[key]
 
         fingerprint = key_data["fingerprint"]
 
