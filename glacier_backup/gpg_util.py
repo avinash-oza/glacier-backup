@@ -4,6 +4,8 @@ import gnupg
 
 logger = logging.getLogger(__name__)
 
+KEYSERVER = "hkp://keyserver.ubuntu.com"
+
 
 class GpgUtil:
     @staticmethod
@@ -11,12 +13,17 @@ class GpgUtil:
         key = key.upper()
         # Init GPG class
         gpg = gnupg.GPG()
-        try:
-            key_data = gpg.list_keys().key_map[key]
-        except KeyError:
-            raise ValueError(f"Invalid GPG key id passed in:{key}")
+
+        result = gpg.recv_keys(KEYSERVER, key)
+        if result.count == 0:
+            raise ValueError(f"Could not get any keys for:{key}")
+
+        key_data = result.results[0]
 
         fingerprint = key_data["fingerprint"]
+
+        gpg.trust_keys(fingerprint, "TRUST_FULLY")
+
         logger.info(
             "Fingerprint of key is {} and uid is {}".format(
                 fingerprint, key_data["uids"]
