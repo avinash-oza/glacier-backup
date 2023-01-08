@@ -3,7 +3,7 @@ import logging
 import os
 
 from glacier_backup.file_data import FileData
-from gpg_util import GpgUtil
+from glacier_backup.gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
 

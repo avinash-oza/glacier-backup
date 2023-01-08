@@ -5,9 +5,7 @@ import posixpath as os_path
 import subprocess
 import tarfile
 
-import gnupg
-
-from gpg_util import GpgUtil
+from glacier_backup.gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
 

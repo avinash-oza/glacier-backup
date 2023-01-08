@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 class GpgUtil:
     @staticmethod
     def get_key(key):
+        key = key.upper()
         # Init GPG class
         gpg = gnupg.GPG()
         try:
