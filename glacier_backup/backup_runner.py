@@ -3,18 +3,13 @@ import logging
 import os
 
 from glacier_backup.file_data import FileData
-from glacier_backup.s3_client import S3Client
+from glacier_backup.gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
 
 
 class BackupRunner:
-    def __init__(
-        self, bucket_name="glacier-backups-651d8f3", temp_dir=None, upload_client=None
-    ):
-        self._client = upload_client
-        if upload_client is None:
-            self._client = S3Client(bucket_name)
+    def __init__(self, temp_dir=None):
 
         self._work_dir = temp_dir
         self._listings_dir = os.path.join(self._work_dir, "listings")
@@ -42,27 +37,18 @@ class BackupRunner:
         if file_data.storage_class != "DEEP_ARCHIVE":
             return True
 
-        expected_file_name = file_data.encrypted_file_name
-        file_metadata = self._client.get_file_metadata(expected_file_name)
-
-        if not file_metadata:
-            logger.info(
-                f"Did not find file existing already, will upload={file_data.file_path}"
-            )
-            return True
-
-        # object exists so print out the datetime
-        logger.info(
-            f"Found archive {expected_file_name} that was last uploaded on {file_metadata['LastModified'].isoformat()} with class: {file_metadata['StorageClass']}. It will not be uploaded again"
-        )
         return False
 
     def run(self, input_file_path, key):
         """
-        Uploads backups to the S3 based glacier that allows us to keep track of filenames
+        Creates encrypted backup files
         :param input_file_path: location of the input file
         :return:
         """
+
+        # make sure the key passed in is valid
+        key_info = GpgUtil.get_key(key)
+        fingerprint = key_info["fingerprint"]
 
         input_file_list = self._load_input_file(input_file_path)
 
@@ -71,23 +57,10 @@ class BackupRunner:
                 continue
 
             compressed_path = row.compress()
-            encrypted_path = row.encrypt(compressed_path, key)
+            row.encrypt(compressed_path, fingerprint)
 
-            dir_listing = row.create_dir_listing(self._listings_dir)
-            if dir_listing is not None:
-                logger.info("Uploading listing information")
-                listing_file_key = "/".join(
-                    ["listings", ".".join([row.folder_name, "gz"])]
-                )
-                self._client.upload_file(listing_file_key, dir_listing)
-                logger.info(
-                    f"Finished uploading listing information as key={listing_file_key}"
-                )
+            row.create_dir_listing(self._listings_dir)
 
-            self._client.upload_file(
-                row.encrypted_file_name,
-                encrypted_path,
-                extra_args={"StorageClass": row.storage_class},
-            )
+            row.cleanup()
 
         logger.info("ALL DONE")
