@@ -3,6 +3,7 @@ import logging
 import os
 
 from glacier_backup.file_data import FileData
+from gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,9 @@ class BackupRunner:
         :param input_file_path: location of the input file
         :return:
         """
+
+        # make sure the key passed in is valid
+        GpgUtil.get_key(key)
 
         input_file_list = self._load_input_file(input_file_path)
 

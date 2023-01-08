@@ -7,6 +7,8 @@ import tarfile
 
 import gnupg
 
+from gpg_util import GpgUtil
+
 logger = logging.getLogger(__name__)
 
 
@@ -121,39 +123,41 @@ class FileData:
 
         if os_path.exists(dest_file_path):
             logger.warning(
-                f"Encrypted path: {dest_file_path} already exists. Not encrypting again again"
+                f"Encrypted path: {dest_file_path} already exists. Not encrypting again"
             )
             return dest_file_path
 
-        # Init GPG class
-        gpg = gnupg.GPG()
-        try:
-            key_data = gpg.list_keys().key_map[key]
-        except KeyError:
-            raise ValueError(f"Invalid GPG key id passed in:{key}")
+        GpgUtil().encrypt_file(key, file_path, dest_file_path)
 
-        fingerprint = key_data["fingerprint"]
-        logger.info(
-            "Fingerprint of key is {} and uid is {}".format(
-                fingerprint, key_data["uids"]
-            )
-        )
+        # # Init GPG class
+        # gpg = gnupg.GPG()
+        # try:
+        #     key_data = gpg.list_keys().key_map[key]
+        # except KeyError:
+        #     raise ValueError(f"Invalid GPG key id passed in:{key}")
+        #
+        # fingerprint = key_data["fingerprint"]
+        # logger.info(
+        #     "Fingerprint of key is {} and uid is {}".format(
+        #         fingerprint, key_data["uids"]
+        #     )
+        # )
 
-        with open(file_path, "rb") as tar_file:
-            logger.info(
-                f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}"
-            )
-            ret = gpg.encrypt_file(
-                tar_file, output=dest_file_path, armor=False, recipients=fingerprint
-            )
+        # with open(file_path, "rb") as tar_file:
+        #     logger.info(
+        #         f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}"
+        #     )
+        #     ret = gpg.encrypt_file(
+        #         tar_file, output=dest_file_path, armor=False, recipients=fingerprint
+        #     )
+        #
+        # if not ret.ok:
+        #     raise RuntimeError(f"Error when encrypting: {ret.stderr}")
 
-        if not ret.ok:
-            raise RuntimeError(f"Error when encrypting: {ret.stderr}")
-
-        logger.debug(f"Encryption status: {ret.ok} {ret.status} {ret.stderr}")
-        logger.info(
-            f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}"
-        )
+        # logger.debug(f"Encryption status: {ret.ok} {ret.status} {ret.stderr}")
+        # logger.info(
+        #     f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}"
+        # )
 
         return dest_file_path
 
