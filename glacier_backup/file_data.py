@@ -107,14 +107,13 @@ class FileData:
         dest_tar_file_path = os_path.join(self._work_dir, self.compressed_file_name)
         return dest_tar_file_path
 
-    def encrypt(self, file_path, key):
+    def encrypt(self, file_path, fingerprint):
         """
         Encrypts the passed in file with key_id
-        :param str key: key to use for encryption
+        :param str fingerprint: key to use for encryption
         :param file_path: the file path to encrypt
         :return: full path of the encrypted file
         """
-        key = key.upper()
 
         dest_file_name = ".".join([os_path.basename(file_path), "gpg"])
         dest_file_path = os_path.join(self._work_dir, dest_file_name)
@@ -125,7 +124,7 @@ class FileData:
             )
             return dest_file_path
 
-        GpgUtil().encrypt_file(key, file_path, dest_file_path)
+        GpgUtil().encrypt_file(fingerprint, file_path, dest_file_path)
 
         # # Init GPG class
         # gpg = gnupg.GPG()

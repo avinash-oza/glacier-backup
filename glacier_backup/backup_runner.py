@@ -47,7 +47,8 @@ class BackupRunner:
         """
 
         # make sure the key passed in is valid
-        GpgUtil.get_key(key)
+        key_info = GpgUtil.get_key(key)
+        fingerprint = key_info["fingerprint"]
 
         input_file_list = self._load_input_file(input_file_path)
 
@@ -56,7 +57,7 @@ class BackupRunner:
                 continue
 
             compressed_path = row.compress()
-            row.encrypt(compressed_path, key)
+            row.encrypt(compressed_path, fingerprint)
 
             row.create_dir_listing(self._listings_dir)
 

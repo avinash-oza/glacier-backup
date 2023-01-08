@@ -27,6 +27,8 @@ class GpgUtil:
 
     @staticmethod
     def encrypt_file(fingerprints, source_path, dest_path):
+        gpg = gnupg.GPG()
+
         with open(dest_path, "rb") as tar_file:
             logger.info(
                 f"Start GPG encrypting path: {source_path} Output path: {dest_path}"
