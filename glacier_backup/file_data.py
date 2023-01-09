@@ -21,6 +21,7 @@ class FileData:
         work_dir,
         listings_root_path,
         storage_provider="S3",
+        apprise_obj=None,
     ):
         if storage_class.upper() not in self.SUPPORTED_STORAGE_CLASSES:
             raise ValueError(
@@ -38,6 +39,12 @@ class FileData:
         self._listings_root_path = listings_root_path
         self._work_dir = os_path.join(work_dir, self._storage_provider.lower())
         os.makedirs(self._work_dir, exist_ok=True)
+        self._apprise_obj = apprise_obj
+
+    def _send_notifcation(self, message):
+        if self._apprise_obj is None:
+            return
+        self._apprise_obj.notify(title="", body=message)
 
     @property
     def file_path(self):
@@ -85,17 +92,17 @@ class FileData:
         # only tar when it is a directory and it doesnt exist
         dest_tar_file_path = self._get_dest_tar_file_path()
         if not os_path.exists(dest_tar_file_path):
-            logger.info(
-                f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}"
-            )
+            message = f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}"
+            logger.info(message)
+            self._send_notifcation(message)
 
             with tarfile.open(dest_tar_file_path, "w:gz") as tar:
                 tar.add(self._file_path)
-            logger.info(
-                "Finished path: {}. Output path: {}".format(
-                    self._file_path, dest_tar_file_path
-                )
+            message = "Finished path: {}. Output path: {}".format(
+                self._file_path, dest_tar_file_path
             )
+            logger.info(message)
+            self._send_notifcation(message)
         else:
             logger.warning(
                 f"Compressed path: {dest_tar_file_path} already exists. Not compressing again"
@@ -124,37 +131,18 @@ class FileData:
             )
             return dest_file_path
 
+        message = (
+            f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}"
+        )
+        logger.info(message)
+        self._send_notifcation(message)
         GpgUtil().encrypt_file(fingerprint, file_path, dest_file_path)
 
-        # # Init GPG class
-        # gpg = gnupg.GPG()
-        # try:
-        #     key_data = gpg.list_keys().key_map[key]
-        # except KeyError:
-        #     raise ValueError(f"Invalid GPG key id passed in:{key}")
-        #
-        # fingerprint = key_data["fingerprint"]
-        # logger.info(
-        #     "Fingerprint of key is {} and uid is {}".format(
-        #         fingerprint, key_data["uids"]
-        #     )
-        # )
-
-        # with open(file_path, "rb") as tar_file:
-        #     logger.info(
-        #         f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}"
-        #     )
-        #     ret = gpg.encrypt_file(
-        #         tar_file, output=dest_file_path, armor=False, recipients=fingerprint
-        #     )
-        #
-        # if not ret.ok:
-        #     raise RuntimeError(f"Error when encrypting: {ret.stderr}")
-
-        # logger.debug(f"Encryption status: {ret.ok} {ret.status} {ret.stderr}")
-        # logger.info(
-        #     f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}"
-        # )
+        message = (
+            f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}"
+        )
+        logger.info(message)
+        self._send_notifcation(message)
 
         return dest_file_path
 
