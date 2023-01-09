@@ -22,7 +22,7 @@ class GpgUtil:
 
         fingerprint = key_data["fingerprint"]
 
-        gpg.trust_keys(fingerprint, "TRUST_FULLY")
+        gpg.trust_keys(fingerprint, "TRUST_ULTIMATE")
 
         logger.info(
             "Fingerprint of key is {} and uid is {}".format(
@@ -46,4 +46,3 @@ class GpgUtil:
             raise RuntimeError(f"Error when encrypting: {ret.stderr}")
 
         logger.debug(f"Encryption status: {ret.ok} {ret.status} {ret.stderr}")
-
