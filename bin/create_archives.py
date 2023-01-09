@@ -12,7 +12,6 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bucket-name", type=str, help="The bucket to use for backups")
     parser.add_argument(
         "--gpg-key-id", type=str, required=True, help="Fingerprint of the key to use"
     )
