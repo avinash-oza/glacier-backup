@@ -15,13 +15,13 @@ class FileData:
     SUPPORTED_STORAGE_PROVIDERS = ["S3", "ONEDRIVE"]
 
     def __init__(
-        self,
-        folder_or_file_path,
-        storage_class,
-        work_dir,
-        listings_root_path,
-        storage_provider="S3",
-        apprise_obj=None,
+            self,
+            folder_or_file_path,
+            storage_class,
+            work_dir,
+            listings_root_path,
+            storage_provider="S3",
+            apprise_obj=None,
     ):
         if storage_class.upper() not in self.SUPPORTED_STORAGE_CLASSES:
             raise ValueError(
@@ -41,9 +41,10 @@ class FileData:
         os.makedirs(self._work_dir, exist_ok=True)
         self._apprise_obj = apprise_obj
 
-    def _send_notifcation(self, message):
+    def _send_notification(self, message):
         if self._apprise_obj is None:
             return
+        message = f"{self.folder_name}: " + message
         self._apprise_obj.notify(title="", body=message)
 
     @property
@@ -92,21 +93,20 @@ class FileData:
         # only tar when it is a directory and it doesnt exist
         dest_tar_file_path = self._get_dest_tar_file_path()
         if not os_path.exists(dest_tar_file_path):
-            message = f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}"
-            logger.info(message)
-            self._send_notifcation(message)
+            logger.info(f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}")
+            self._send_notification("Start compressing")
 
             with tarfile.open(dest_tar_file_path, "w:gz") as tar:
                 tar.add(self._file_path)
-            message = "Finished path: {}. Output path: {}".format(
+            logger.info("Finished path: {}. Output path: {}".format(
                 self._file_path, dest_tar_file_path
-            )
-            logger.info(message)
-            self._send_notifcation(message)
+            ))
+            self._send_notification("Finished compressing")
         else:
             logger.warning(
                 f"Compressed path: {dest_tar_file_path} already exists. Not compressing again"
             )
+            self._send_notification("Tar exists, not compressing again.")
 
         return dest_tar_file_path
 
@@ -131,18 +131,15 @@ class FileData:
             )
             return dest_file_path
 
-        message = (
-            f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}"
-        )
-        logger.info(message)
-        self._send_notifcation(message)
+        logger.info(f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}")
+        self._send_notification("Start encrypting")
         GpgUtil().encrypt_file(fingerprint, file_path, dest_file_path)
 
         message = (
             f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}"
         )
         logger.info(message)
-        self._send_notifcation(message)
+        self._send_notification("Finished encrypting")
 
         return dest_file_path
 
