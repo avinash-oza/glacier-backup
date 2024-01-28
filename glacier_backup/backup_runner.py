@@ -32,6 +32,7 @@ class BackupRunner:
                     "work_dir": self._work_dir,
                     "listings_root_path": self._listings_dir,
                     "apprise_obj": self._apprise_obj,
+                    "output_file_path": row.get('output_file_path')
                 }
                 logger.info(
                     f"Added path {kwargs['folder_or_file_path']} with level:{kwargs['storage_class']} to paths to process"

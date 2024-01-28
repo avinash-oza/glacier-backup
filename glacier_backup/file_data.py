@@ -22,6 +22,7 @@ class FileData:
             listings_root_path,
             storage_provider="S3",
             apprise_obj=None,
+            output_file_path=None
     ):
         if storage_class.upper() not in self.SUPPORTED_STORAGE_CLASSES:
             raise ValueError(
@@ -40,6 +41,7 @@ class FileData:
         self._work_dir = os_path.join(work_dir, self._storage_provider.lower())
         os.makedirs(self._work_dir, exist_ok=True)
         self._apprise_obj = apprise_obj
+        self._output_file_path = output_file_path
 
     def _send_notification(self, message):
         if self._apprise_obj is None:
@@ -64,6 +66,8 @@ class FileData:
         if self.is_compressed():
             # keep the compressed file as is
             return self.folder_name
+        if self._output_file_path:
+            return ".".join([self._output_file_path, "tar.gz"])
 
         return ".".join([self.folder_name, "tar.gz"])
 
