@@ -1,8 +1,7 @@
-import os
-import pprint
 import argparse
 import csv
 import logging
+import os
 
 GLACIER = 'GLACIER'
 DEEP_GLACIER = 'DEEP_GLACIER'
@@ -17,13 +16,13 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
         (os.path.join(immich_file_root, 'photos', 'thumbs'), GLACIER, ''),
         (os.path.join(immich_file_root, 'photos', 'upload'), GLACIER, ''),
     ])
-    
+
     current_year = '2024'
 
     photos_file_path = os.path.join(immich_file_root, 'photos', 'library')
     for user in os.listdir(photos_file_path):
         logger.info("Username: %s", user)
-        
+
         user_file_path = os.path.join(photos_file_path, user)
         for year in os.listdir(user_file_path):
             year_file_path = os.path.join(user_file_path, year)
@@ -42,7 +41,7 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
 
     with open(output_file_path, 'w') as f:
         writer = csv.writer(f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(['file_path','storage_class', 'output_file_path'])
+        writer.writerow(['file_path', 'storage_class', 'output_file_path'])
         for r in output_list:
             writer.writerow(r)
 
@@ -73,8 +72,6 @@ parser.add_argument(
     help="Do a full backup (vs current year only)",
 )
 
-
 args = parser.parse_args()
 
 generate_output_file(args.immich_file_root, args.output_file_path, args.full)
-
