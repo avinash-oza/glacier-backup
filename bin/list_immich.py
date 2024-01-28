@@ -1,5 +1,6 @@
 import argparse
 import csv
+import datetime
 import logging
 import os
 
@@ -17,7 +18,7 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
         (os.path.join(immich_file_root, 'photos', 'upload'), GLACIER, ''),
     ])
 
-    current_year = '2024'
+    current_year = str(datetime.datetime.now().year)
 
     photos_file_path = os.path.join(immich_file_root, 'photos', 'library')
     for user in os.listdir(photos_file_path):
