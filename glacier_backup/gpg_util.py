@@ -34,9 +34,7 @@ class GpgUtil:
 
     @staticmethod
     def encrypt_file(fingerprints, source_path, dest_path):
-
         with open(source_path, "rb") as tar_file:
-
             ret = gpg.encrypt_file(
                 tar_file, output=dest_path, armor=False, recipients=fingerprints
             )

@@ -15,14 +15,14 @@ class FileData:
     SUPPORTED_STORAGE_PROVIDERS = ["S3", "ONEDRIVE"]
 
     def __init__(
-            self,
-            folder_or_file_path,
-            storage_class,
-            work_dir,
-            listings_root_path,
-            storage_provider="S3",
-            apprise_obj=None,
-            output_file_path=None
+        self,
+        folder_or_file_path,
+        storage_class,
+        work_dir,
+        listings_root_path,
+        storage_provider="S3",
+        apprise_obj=None,
+        output_file_path=None,
     ):
         if storage_class.upper() not in self.SUPPORTED_STORAGE_CLASSES:
             raise ValueError(
@@ -97,14 +97,18 @@ class FileData:
         # only tar when it is a directory and it doesnt exist
         dest_tar_file_path = self._get_dest_tar_file_path()
         if not os_path.exists(dest_tar_file_path):
-            logger.info(f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}")
+            logger.info(
+                f"Start compressing path: {self._file_path}. Output path: {dest_tar_file_path}"
+            )
             self._send_notification("Start compressing")
 
             with tarfile.open(dest_tar_file_path, "w:gz") as tar:
                 tar.add(self._file_path)
-            logger.info("Finished path: {}. Output path: {}".format(
-                self._file_path, dest_tar_file_path
-            ))
+            logger.info(
+                "Finished path: {}. Output path: {}".format(
+                    self._file_path, dest_tar_file_path
+                )
+            )
             self._send_notification("Finished compressing")
         else:
             logger.warning(
@@ -135,7 +139,9 @@ class FileData:
             )
             return dest_file_path
 
-        logger.info(f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}")
+        logger.info(
+            f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}"
+        )
         self._send_notification("Start encrypting")
         GpgUtil().encrypt_file(fingerprint, file_path, dest_file_path)
 

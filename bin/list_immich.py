@@ -4,8 +4,8 @@ import datetime
 import logging
 import os
 
-GLACIER = 'GLACIER'
-DEEP_GLACIER = 'DEEP_GLACIER'
+GLACIER = "GLACIER"
+DEEP_GLACIER = "DEEP_GLACIER"
 
 
 def generate_output_file(immich_file_root, output_file_path, full_backup):
@@ -13,14 +13,16 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
     # upload -> complete directory every time
     # library/1e958228-47fc-463d-83c7-0bc485a8cbfa/2024
     output_list = []
-    output_list.extend([
-        (os.path.join(immich_file_root, 'photos', 'thumbs'), GLACIER, ''),
-        (os.path.join(immich_file_root, 'photos', 'upload'), GLACIER, ''),
-    ])
+    output_list.extend(
+        [
+            (os.path.join(immich_file_root, "photos", "thumbs"), GLACIER, ""),
+            (os.path.join(immich_file_root, "photos", "upload"), GLACIER, ""),
+        ]
+    )
 
     current_year = str(datetime.datetime.now().year)
 
-    photos_file_path = os.path.join(immich_file_root, 'photos', 'library')
+    photos_file_path = os.path.join(immich_file_root, "photos", "library")
     for user in os.listdir(photos_file_path):
         logger.info("Username: %s", user)
 
@@ -28,7 +30,7 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
         for year in os.listdir(user_file_path):
             year_file_path = os.path.join(user_file_path, year)
 
-            archive_output_file_name = f'{user}__{year}'
+            archive_output_file_name = f"{user}__{year}"
 
             if full_backup:
                 output_list.append((year_file_path, GLACIER, archive_output_file_name))
@@ -40,9 +42,9 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
                 continue
             output_list.append((year_file_path, DEEP_GLACIER, archive_output_file_name))
 
-    with open(output_file_path, 'w') as f:
-        writer = csv.writer(f, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(['file_path', 'storage_class', 'output_file_path'])
+    with open(output_file_path, "w") as f:
+        writer = csv.writer(f, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
+        writer.writerow(["file_path", "storage_class", "output_file_path"])
         for r in output_list:
             writer.writerow(r)
 
@@ -69,7 +71,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--full",
-    action='store_true',
+    action="store_true",
     help="Do a full backup (vs current year only)",
 )
 
