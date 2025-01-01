@@ -24,6 +24,12 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
 
     photos_file_path = os.path.join(immich_file_root, "photos", "library")
     for user in os.listdir(photos_file_path):
+        user_file_path = os.path.join(photos_file_path, user)
+
+        if not os.path.isdir(user_file_path):
+            logger.warning(f"Skipping {user_file_path=}")
+            continue
+
         logger.info("Username: %s", user)
 
         user_file_path = os.path.join(photos_file_path, user)
