@@ -5,6 +5,7 @@ import posixpath as os_path
 import subprocess
 import tarfile
 from dataclasses import dataclass
+from apprise import Apprise
 
 from glacier_backup.gpg_util import GpgUtil
 
@@ -21,7 +22,7 @@ class FileData:
     work_dir: str
     listings_root_path: str
     storage_provider: str = "S3"
-    apprise_obj = None
+    apprise_obj: Apprise  = None
     output_file_path: str = None
 
     def __post_init__(self):

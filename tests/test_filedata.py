@@ -80,7 +80,7 @@ class FileDataTestCase(TestCase):
         res = fd.compress()
         self.assertEqual(res, expected_output_path, msg="file should not be copied")
 
-    @skip('Need to review later')
+    @skip("Need to review later")
     @mock.patch("glacier_backup.file_data.GpgUtil")
     def test_encrypt_sample_gz(self, mock_gnupg, *_):
         p = r"/mnt/raid0/test_folder.gz"

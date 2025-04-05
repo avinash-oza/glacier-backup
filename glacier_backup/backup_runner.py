@@ -27,7 +27,7 @@ class BackupRunner:
             reader = csv.DictReader(f)
             for row in reader:
                 kwargs = {
-                    "folder_or_file_path": row["file_path"],
+                    "file_path": row["file_path"],
                     "storage_class": row["storage_class"],
                     "work_dir": self._work_dir,
                     "listings_root_path": self._listings_dir,
@@ -35,7 +35,7 @@ class BackupRunner:
                     "output_file_path": row.get("output_file_path"),
                 }
                 logger.info(
-                    f"Added path {kwargs['folder_or_file_path']} with level:{kwargs['storage_class']} to paths to process"
+                    f"Added path {kwargs['file_path']} with level:{kwargs['storage_class']} to paths to process"
                 )
                 input_file_list.append(FileData(**kwargs))
         logger.info(f"Finished loading {len(input_file_list)} paths to process")
