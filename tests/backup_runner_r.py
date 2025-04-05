@@ -35,24 +35,28 @@ class BackupRunnerTestCase(unittest.TestCase):
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_ONCE,
+                output_file_path="",
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder2",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_EVERY_BACKUP,
+                output_file_path="",
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder3",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_EVERY_BACKUP,
+                output_file_path="",
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder4",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_EVERY_BACKUP,
+                output_file_path="",
             ),
         ]
 
