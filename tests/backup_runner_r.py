@@ -3,7 +3,11 @@ import tempfile
 import unittest
 
 from glacier_backup.backup_runner import BackupRunner
-from glacier_backup.file_data import FileData
+from glacier_backup.file_data import (
+    FileData,
+    UPLOAD_TIME_EVERY_BACKUP,
+    UPLOAD_TIME_ONCE,
+)
 
 
 class BackupRunnerTestCase(unittest.TestCase):
@@ -31,24 +35,28 @@ class BackupRunnerTestCase(unittest.TestCase):
                 storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
+                upload_time=UPLOAD_TIME_ONCE,
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder2",
                 storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
+                upload_time=UPLOAD_TIME_EVERY_BACKUP,
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder3",
                 storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
+                upload_time=UPLOAD_TIME_EVERY_BACKUP,
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder4",
                 storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
+                upload_time=UPLOAD_TIME_EVERY_BACKUP,
             ),
         ]
 

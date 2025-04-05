@@ -2,7 +2,7 @@ import csv
 import logging
 import os
 
-from glacier_backup.file_data import FileData
+from glacier_backup.file_data import FileData, UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ class BackupRunner:
                     "listings_root_path": self._listings_dir,
                     "apprise_obj": self._apprise_obj,
                     "output_file_path": row.get("output_file_path"),
+                    "upload_time": row.get("upload_time"),
                 }
                 logger.info(
                     f"Added path {kwargs['file_path']} with level:{kwargs['storage_class']} to paths to process"
@@ -42,7 +43,7 @@ class BackupRunner:
         return input_file_list
 
     def _should_upload_file(self, file_data):
-        if file_data.storage_class != "DEEP_ARCHIVE":
+        if file_data.upload_time == UPLOAD_TIME_EVERY_BACKUP:
             return True
 
         return False

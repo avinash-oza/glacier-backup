@@ -11,19 +11,24 @@ from glacier_backup.gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
 
+UPLOAD_TIME_ONCE = "ONCE"
+UPLOAD_TIME_EVERY_BACKUP = "EVERY_BACKUP"
+
 
 @dataclass
 class FileData:
     SUPPORTED_STORAGE_CLASSES = ["GLACIER", "DEEP_ARCHIVE", "STANDARD"]
     SUPPORTED_STORAGE_PROVIDERS = ["S3", "ONEDRIVE"]
+    SUPPORTED_UPLOAD_TIMES = [UPLOAD_TIME_ONCE, UPLOAD_TIME_EVERY_BACKUP]
 
     file_path: str
     storage_class: str
     work_dir: str
     listings_root_path: str
     storage_provider: str = "S3"
-    apprise_obj: Apprise  = None
+    apprise_obj: Apprise = None
     output_file_path: str = None
+    upload_time: str = UPLOAD_TIME_EVERY_BACKUP
 
     def __post_init__(self):
 
@@ -35,6 +40,11 @@ class FileData:
         if self.storage_provider.upper() not in self.SUPPORTED_STORAGE_PROVIDERS:
             raise ValueError(
                 f"Path: {self.file_path}, storage provider: {self.storage_provider} not supported"
+            )
+
+        if self.upload_time.upper() not in self.SUPPORTED_UPLOAD_TIMES:
+            raise ValueError(
+                f"Path: {self.file_path}, {self.upload_time=} not supported"
             )
 
         self.file_path = self.file_path
