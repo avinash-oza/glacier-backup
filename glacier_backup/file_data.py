@@ -22,7 +22,6 @@ class FileData:
     file_path: str
     work_dir: str
     listings_root_path: str
-    storage_provider: str = "S3"
     apprise_obj: Apprise = None
     output_file_path: str = None
     upload_time: str = UPLOAD_TIME_EVERY_BACKUP
@@ -35,8 +34,7 @@ class FileData:
             )
 
         self.file_path = self.file_path
-        self._work_dir = os_path.join(self.work_dir, self.storage_provider.lower())
-        os.makedirs(self._work_dir, exist_ok=True)
+        os.makedirs(self.work_dir, exist_ok=True)
 
     def _send_notification(self, message):
         if self.apprise_obj is None:
@@ -106,7 +104,7 @@ class FileData:
         return dest_tar_file_path
 
     def _get_dest_tar_file_path(self):
-        dest_tar_file_path = os_path.join(self._work_dir, self.compressed_file_name)
+        dest_tar_file_path = os_path.join(self.work_dir, self.compressed_file_name)
         return dest_tar_file_path
 
     def encrypt(self, file_path, fingerprint):
@@ -118,7 +116,7 @@ class FileData:
         """
 
         dest_file_name = ".".join([os_path.basename(file_path), "gpg"])
-        dest_file_path = os_path.join(self._work_dir, dest_file_name)
+        dest_file_path = os_path.join(self.work_dir, dest_file_name)
 
         if os_path.exists(dest_file_path):
             logger.warning(
