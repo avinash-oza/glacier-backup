@@ -15,14 +15,12 @@ UPLOAD_TIME_ONCE = "ONCE"
 UPLOAD_TIME_EVERY_BACKUP = "EVERY_BACKUP"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class FileData:
-    SUPPORTED_STORAGE_CLASSES = ["GLACIER", "DEEP_ARCHIVE", "STANDARD"]
     SUPPORTED_STORAGE_PROVIDERS = ["S3", "ONEDRIVE"]
     SUPPORTED_UPLOAD_TIMES = [UPLOAD_TIME_ONCE, UPLOAD_TIME_EVERY_BACKUP]
 
     file_path: str
-    storage_class: str
     work_dir: str
     listings_root_path: str
     storage_provider: str = "S3"
@@ -31,11 +29,6 @@ class FileData:
     upload_time: str = UPLOAD_TIME_EVERY_BACKUP
 
     def __post_init__(self):
-
-        if self.storage_class.upper() not in self.SUPPORTED_STORAGE_CLASSES:
-            raise ValueError(
-                f"Path: {self.file_path}, storage class: {self.storage_class} not supported"
-            )
 
         if self.storage_provider.upper() not in self.SUPPORTED_STORAGE_PROVIDERS:
             raise ValueError(
@@ -48,7 +41,6 @@ class FileData:
             )
 
         self.file_path = self.file_path
-        self.storage_class = self.storage_class.upper()
         self._work_dir = os_path.join(self.work_dir, self.storage_provider.lower())
         os.makedirs(self._work_dir, exist_ok=True)
 
