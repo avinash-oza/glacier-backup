@@ -32,28 +32,24 @@ class BackupRunnerTestCase(unittest.TestCase):
         expected_result = [
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder1",
-                storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_ONCE,
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder2",
-                storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_EVERY_BACKUP,
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder3",
-                storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_EVERY_BACKUP,
             ),
             FileData(
                 file_path="{DIRECTORY_ROOTS}/Folder4",
-                storage_class="GLACIER",
                 work_dir=self.temp_dir_path,
                 listings_root_path=listings_dir,
                 upload_time=UPLOAD_TIME_EVERY_BACKUP,

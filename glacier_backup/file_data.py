@@ -17,7 +17,6 @@ UPLOAD_TIME_EVERY_BACKUP = "EVERY_BACKUP"
 
 @dataclass(kw_only=True)
 class FileData:
-    SUPPORTED_STORAGE_PROVIDERS = ["S3", "ONEDRIVE"]
     SUPPORTED_UPLOAD_TIMES = [UPLOAD_TIME_ONCE, UPLOAD_TIME_EVERY_BACKUP]
 
     file_path: str
@@ -29,11 +28,6 @@ class FileData:
     upload_time: str = UPLOAD_TIME_EVERY_BACKUP
 
     def __post_init__(self):
-
-        if self.storage_provider.upper() not in self.SUPPORTED_STORAGE_PROVIDERS:
-            raise ValueError(
-                f"Path: {self.file_path}, storage provider: {self.storage_provider} not supported"
-            )
 
         if self.upload_time.upper() not in self.SUPPORTED_UPLOAD_TIMES:
             raise ValueError(

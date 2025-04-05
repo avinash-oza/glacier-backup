@@ -26,17 +26,17 @@ class BackupRunner:
         with open(input_file_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                upload_time = row.get("upload_time")
                 kwargs = {
                     "file_path": row["file_path"],
-                    "storage_class": row["storage_class"],
                     "work_dir": self._work_dir,
                     "listings_root_path": self._listings_dir,
                     "apprise_obj": self._apprise_obj,
                     "output_file_path": row.get("output_file_path"),
-                    "upload_time": row.get("upload_time"),
+                    "upload_time": upload_time,
                 }
                 logger.info(
-                    f"Added path {kwargs['file_path']} with level:{kwargs['storage_class']} to paths to process"
+                    f"Added path {kwargs['file_path']} with {upload_time=} to paths to process"
                 )
                 input_file_list.append(FileData(**kwargs))
         logger.info(f"Finished loading {len(input_file_list)} paths to process")
