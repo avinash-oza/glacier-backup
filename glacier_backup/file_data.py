@@ -32,7 +32,6 @@ class FileData:
                 f"Path: {self.file_path}, {self.upload_time=} not supported"
             )
 
-        self.file_path = self.file_path
         os.makedirs(self.work_dir, exist_ok=True)
 
     def _send_notification(self, message):
