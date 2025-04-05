@@ -7,3 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "python-gnupg>=0.5.4",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
