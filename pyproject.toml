@@ -5,9 +5,6 @@ version = "0.2b2"
 description = "Glacier backup package"
 requires-python = ">=3.13"
 dependencies = [
-    "black>=25.1.0",
-    "build>=1.2.2.post1",
-    "click>=8.1.8",
     "pandas>=2.2.3",
     "python-gnupg>=0.5.4",
 ]
@@ -15,3 +12,11 @@ dependencies = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "build>=1.2.2.post1",
+    "mypy>=1.15.0",
+    "pre-commit>=4.2.0",
+]
