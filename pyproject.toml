@@ -5,7 +5,6 @@ version = "0.2b2"
 description = "Glacier backup package"
 requires-python = ">=3.13"
 dependencies = [
-    "pandas>=2.2.3",
     "python-gnupg>=0.5.4",
 ]
 
