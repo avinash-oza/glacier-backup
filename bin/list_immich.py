@@ -4,8 +4,7 @@ import datetime
 import logging
 import os
 
-GLACIER = "GLACIER"
-DEEP_GLACIER = "DEEP_GLACIER"
+from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
 
 
 def generate_output_file(immich_file_root, output_file_path, full_backup):
@@ -15,8 +14,14 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
     output_list = []
     output_list.extend(
         [
-            (os.path.join(immich_file_root, "photos", "thumbs"), GLACIER, ""),
-            (os.path.join(immich_file_root, "photos", "upload"), GLACIER, ""),
+            (
+                os.path.join(immich_file_root, "photos", "thumbs"),
+                UPLOAD_TIME_EVERY_BACKUP,
+            ),
+            (
+                os.path.join(immich_file_root, "photos", "upload"),
+                UPLOAD_TIME_EVERY_BACKUP,
+            ),
         ]
     )
 
@@ -39,18 +44,24 @@ def generate_output_file(immich_file_root, output_file_path, full_backup):
             archive_output_file_name = f"{user}__{year}"
 
             if full_backup:
-                output_list.append((year_file_path, GLACIER, archive_output_file_name))
+                output_list.append(
+                    (year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name)
+                )
                 continue
 
             if year == current_year:
-                output_list.append((year_file_path, GLACIER, archive_output_file_name))
+                output_list.append(
+                    (year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name)
+                )
                 logger.info("Setting current year to glacier")
                 continue
-            output_list.append((year_file_path, DEEP_GLACIER, archive_output_file_name))
+            output_list.append(
+                (year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name)
+            )
 
     with open(output_file_path, "w") as f:
         writer = csv.writer(f, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(["file_path", "storage_class", "output_file_path"])
+        writer.writerow(["file_path", "upload_time", "output_file_path"])
         for r in output_list:
             writer.writerow(r)
 

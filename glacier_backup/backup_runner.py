@@ -2,7 +2,7 @@ import csv
 import logging
 import os
 
-from glacier_backup.file_data import FileData
+from glacier_backup.file_data import FileData, UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
@@ -26,23 +26,23 @@ class BackupRunner:
         with open(input_file_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                upload_time = row.get("upload_time")
                 kwargs = {
-                    "folder_or_file_path": row["file_path"],
-                    "storage_class": row["storage_class"],
+                    "file_path": row["file_path"],
                     "work_dir": self._work_dir,
                     "listings_root_path": self._listings_dir,
-                    "apprise_obj": self._apprise_obj,
                     "output_file_path": row.get("output_file_path"),
+                    "upload_time": upload_time,
                 }
                 logger.info(
-                    f"Added path {kwargs['folder_or_file_path']} with level:{kwargs['storage_class']} to paths to process"
+                    f"Added path {kwargs['file_path']} with {upload_time=} to paths to process"
                 )
                 input_file_list.append(FileData(**kwargs))
         logger.info(f"Finished loading {len(input_file_list)} paths to process")
         return input_file_list
 
     def _should_upload_file(self, file_data):
-        if file_data.storage_class != "DEEP_ARCHIVE":
+        if file_data.upload_time == UPLOAD_TIME_EVERY_BACKUP:
             return True
 
         return False
