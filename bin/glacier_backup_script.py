@@ -42,19 +42,16 @@ def list_immich(immich_file_root, output_file_path, full_backup):
     # thumbs -> complete directory every time
     # upload -> complete directory every time
     # library/1e958228-47fc-463d-83c7-0bc485a8cbfa/2024
-    output_list = []
-    output_list.extend(
-        [
-            (
-                os.path.join(immich_file_root, "photos", "thumbs"),
-                UPLOAD_TIME_EVERY_BACKUP,
-            ),
-            (
-                os.path.join(immich_file_root, "photos", "upload"),
-                UPLOAD_TIME_EVERY_BACKUP,
-            ),
-        ]
-    )
+    output_list = [
+        (
+            os.path.join(immich_file_root, "photos", "thumbs"),
+            UPLOAD_TIME_EVERY_BACKUP,
+        ),
+        (
+            os.path.join(immich_file_root, "photos", "upload"),
+            UPLOAD_TIME_EVERY_BACKUP,
+        ),
+    ]
 
     current_year = str(datetime.datetime.now().year)
 
