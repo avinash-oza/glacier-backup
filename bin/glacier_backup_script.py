@@ -1,4 +1,5 @@
 import csv
+import dataclasses
 import datetime
 import logging
 import os
@@ -7,6 +8,7 @@ import click
 
 from glacier_backup.backup_runner import BackupRunner
 from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
+from glacier_backup.structures import CsvInputRow
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,14 +44,16 @@ def list_immich(immich_file_root, output_file_path, full_backup):
     # thumbs -> complete directory every time
     # upload -> complete directory every time
     # library/1e958228-47fc-463d-83c7-0bc485a8cbfa/2024
-    output_list = [
-        (
+    output_list: list[CsvInputRow] = [
+        CsvInputRow(
             os.path.join(immich_file_root, "photos", "thumbs"),
             UPLOAD_TIME_EVERY_BACKUP,
+            output_file_path=None,
         ),
-        (
+        CsvInputRow(
             os.path.join(immich_file_root, "photos", "upload"),
             UPLOAD_TIME_EVERY_BACKUP,
+            output_file_path=None,
         ),
     ]
 
@@ -73,25 +77,35 @@ def list_immich(immich_file_root, output_file_path, full_backup):
 
             if full_backup:
                 output_list.append(
-                    (year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name)
+                    CsvInputRow(
+                        year_file_path,
+                        UPLOAD_TIME_EVERY_BACKUP,
+                        archive_output_file_name,
+                    )
                 )
                 continue
 
             if year == current_year:
                 output_list.append(
-                    (year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name)
+                    CsvInputRow(
+                        year_file_path,
+                        UPLOAD_TIME_EVERY_BACKUP,
+                        archive_output_file_name,
+                    )
                 )
                 logger.info("Setting current year to glacier")
                 continue
             output_list.append(
-                (year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name)
+                CsvInputRow(
+                    year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name
+                )
             )
 
     with open(output_file_path, "w") as f:
         writer = csv.writer(f, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
         writer.writerow(["file_path", "upload_time", "output_file_path"])
         for r in output_list:
-            writer.writerow(r)
+            writer.writerow(dataclasses.astuple(r))
 
 
 @cli.command()
