@@ -21,7 +21,6 @@ class FileData:
     file_path: str
     work_dir: str
     listings_root_path: str
-    apprise_obj: str = None
     output_file_path: str = ""
     upload_time: str = UPLOAD_TIME_EVERY_BACKUP
 
@@ -33,12 +32,6 @@ class FileData:
             )
 
         os.makedirs(self.work_dir, exist_ok=True)
-
-    def _send_notification(self, message):
-        if self.apprise_obj is None:
-            return
-        message = f"{self.folder_name}: " + message
-        self.apprise_obj.notify(title="", body=message)
 
     @property
     def folder_name(self):
@@ -83,8 +76,6 @@ class FileData:
             logger.info(
                 f"Start compressing path: {self.file_path}. Output path: {dest_tar_file_path}"
             )
-            self._send_notification("Start compressing")
-
             with tarfile.open(dest_tar_file_path, "w:gz") as tar:
                 tar.add(self.file_path)
             logger.info(
@@ -92,12 +83,10 @@ class FileData:
                     self.file_path, dest_tar_file_path
                 )
             )
-            self._send_notification("Finished compressing")
         else:
             logger.warning(
                 f"Compressed path: {dest_tar_file_path} already exists. Not compressing again"
             )
-            self._send_notification("Tar exists, not compressing again.")
 
         return dest_tar_file_path
 
@@ -125,14 +114,12 @@ class FileData:
         logger.info(
             f"Start GPG encrypting path: {file_path} Output path: {dest_file_path}"
         )
-        self._send_notification("Start encrypting")
         GpgUtil().encrypt_file(fingerprint, file_path, dest_file_path)
 
         message = (
             f"Finished GPG encrypting path: {file_path}  Output path: {dest_file_path}"
         )
         logger.info(message)
-        self._send_notification("Finished encrypting")
 
         return dest_file_path
 
