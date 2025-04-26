@@ -1,11 +1,7 @@
-import gzip
 import logging
 import os
 import posixpath as os_path
-import subprocess
 from dataclasses import dataclass
-
-from glacier_backup.gpg_util import GpgUtil
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +15,6 @@ class FileData:
 
     file_path: str
     work_dir: str
-    listings_root_path: str
     output_file_path: str = ""
     upload_time: str = UPLOAD_TIME_EVERY_BACKUP
 
@@ -42,7 +37,7 @@ class FileData:
 
     @property
     def compressed_file_name(self):
-        if self.is_compressed():
+        if self.is_compressed:
             # keep the compressed file as is
             return self.folder_name
         if self.output_file_path:
@@ -50,6 +45,7 @@ class FileData:
 
         return ".".join([self.folder_name, "tar.gz"])
 
+    @property
     def is_compressed(self):
         return self.file_path.endswith("bz2") or self.file_path.endswith("gz")
 
@@ -57,46 +53,7 @@ class FileData:
     def encrypted_file_name(self):
         return ".".join([self.compressed_file_name, "gpg"])
 
-    def get_dest_tar_file_path(self):
+    @property
+    def dest_tar_file_path(self):
         dest_tar_file_path = os_path.join(self.work_dir, self.compressed_file_name)
         return dest_tar_file_path
-
-    def create_dir_listing(self, listing_dir):
-        """
-        Returns the directory listing
-
-        :return: file path or None
-        """
-
-        if not os_path.isdir(self.file_path):
-            logger.warning("Input is not a dir, not creating a dir listing")
-            return
-
-        listing_file_name = ".".join([self.folder_name, "gz"])
-        output_file_path = os_path.join(listing_dir, listing_file_name)
-
-        logger.info(
-            "Creating file containing the list of files {}".format(output_file_path)
-        )
-
-        with gzip.GzipFile(filename=output_file_path, mode="w") as gzipped_listing:
-            result = subprocess.run(
-                "du -ah {}".format(self.file_path), shell=True, capture_output=True
-            )
-            gzipped_listing.write(result.stdout)
-
-        logger.info("Done creating file {}".format(output_file_path))
-        return output_file_path
-
-    def cleanup(self):
-        """
-        Cleans up any temporary files created
-        :return:
-        """
-        if self.is_compressed():
-            # do not remove the original input archive file
-            return
-
-        dest_tar_file_path = self.get_dest_tar_file_path()
-        logger.info(f"Removing {dest_tar_file_path}")
-        os.remove(dest_tar_file_path)
