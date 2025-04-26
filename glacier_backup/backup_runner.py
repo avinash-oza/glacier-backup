@@ -90,18 +90,14 @@ class BackupRunner:
         dest_tar_file_path = file_data.dest_tar_file_path
         if not os_path.exists(dest_tar_file_path):
             logger.info(
-                f"Start compressing path: {file_data.file_path}. Output path: {dest_tar_file_path}"
+                f"Start compressing {file_data.file_path=}, {dest_tar_file_path=}"
             )
             with tarfile.open(dest_tar_file_path, "w:gz") as tar:
                 tar.add(file_data.file_path)
-            logger.info(
-                "Finished path: {}. Output path: {}".format(
-                    file_data.file_path, dest_tar_file_path
-                )
-            )
+            logger.info(f"Finished path: {file_data.file_path=}, {dest_tar_file_path=}")
         else:
             logger.warning(
-                f"Compressed path: {dest_tar_file_path} already exists. Not compressing again"
+                f"{dest_tar_file_path=} already exists. Not compressing again"
             )
 
         return dest_tar_file_path
@@ -118,17 +114,13 @@ class BackupRunner:
         dest_file_path = os_path.join(self.work_dir, dest_file_name)
 
         if os_path.exists(dest_file_path):
-            logger.warning(
-                f"Encrypted path: {dest_file_path} already exists. Not encrypting again"
-            )
+            logger.warning(f"{dest_file_path=} already exists. Not encrypting again")
             return dest_file_path
 
-        logger.info(
-            f"Start GPG encrypting path: {compressed_file_path} Output path: {dest_file_path}"
-        )
+        logger.info(f"Start GPG encrypting {compressed_file_path=}, {dest_file_path=}")
         GpgUtil.encrypt_file(fingerprint, compressed_file_path, dest_file_path)
 
-        message = f"Finished GPG encrypting path: {compressed_file_path}  Output path: {dest_file_path}"
+        message = f"Start GPG encrypting {compressed_file_path=}, {dest_file_path=}"
         logger.info(message)
 
         return dest_file_path
@@ -150,9 +142,7 @@ class BackupRunner:
         listing_file_name = ".".join([file_data.folder_name, "gz"])
         output_file_path = os_path.join(self._listings_dir, listing_file_name)
 
-        logger.info(
-            "Creating file containing the list of files {}".format(output_file_path)
-        )
+        logger.info(f"Creating file containing the list of files {output_file_path=}")
 
         with gzip.GzipFile(filename=output_file_path, mode="w") as gzipped_listing:
             result = subprocess.run(
@@ -160,7 +150,7 @@ class BackupRunner:
             )
             gzipped_listing.write(result.stdout)
 
-        logger.info("Done creating file {}".format(output_file_path))
+        logger.info(f"Finish file containing the list of files {output_file_path=}")
         return output_file_path
 
     def cleanup(self, file_data: FileData):
@@ -173,5 +163,5 @@ class BackupRunner:
             return
 
         dest_tar_file_path = file_data.dest_tar_file_path
-        logger.info(f"Removing {dest_tar_file_path}")
+        logger.info(f"Removing {dest_tar_file_path=}")
         os.remove(dest_tar_file_path)
