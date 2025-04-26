@@ -65,7 +65,7 @@ class BackupRunner:
                 continue
 
             compressed_path = self.compress(row)
-            row.encrypt(compressed_path, fingerprint)
+            self.encrypt(compressed_path, fingerprint)
 
             row.create_dir_listing(self._listings_dir)
 
@@ -104,3 +104,30 @@ class BackupRunner:
             )
 
         return dest_tar_file_path
+
+    def encrypt(self, compressed_file_path, fingerprint):
+        """
+        Encrypts the passed in file with key_id
+        :param str fingerprint: key to use for encryption
+        :param compressed_file_path: the file path to encrypt
+        :return: full path of the encrypted file
+        """
+
+        dest_file_name = ".".join([os_path.basename(compressed_file_path), "gpg"])
+        dest_file_path = os_path.join(self.work_dir, dest_file_name)
+
+        if os_path.exists(dest_file_path):
+            logger.warning(
+                f"Encrypted path: {dest_file_path} already exists. Not encrypting again"
+            )
+            return dest_file_path
+
+        logger.info(
+            f"Start GPG encrypting path: {compressed_file_path} Output path: {dest_file_path}"
+        )
+        GpgUtil.encrypt_file(fingerprint, compressed_file_path, dest_file_path)
+
+        message = f"Finished GPG encrypting path: {compressed_file_path}  Output path: {dest_file_path}"
+        logger.info(message)
+
+        return dest_file_path
