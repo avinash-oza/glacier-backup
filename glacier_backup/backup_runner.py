@@ -1,6 +1,8 @@
 import csv
 import logging
 import os
+import posixpath as os_path
+import tarfile
 
 from glacier_backup.file_data import FileData, UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.gpg_util import GpgUtil
@@ -19,7 +21,7 @@ class BackupRunner:
         self._listings_dir = os.path.join(self._work_dir, "listings")
         os.makedirs(self._listings_dir, exist_ok=True)
 
-    def _load_input_file(self, input_file_path):
+    def _load_input_file(self, input_file_path) -> list[FileData]:
         input_file_list = []
         with open(input_file_path, "r") as f:
             reader = csv.DictReader(f)
@@ -62,7 +64,7 @@ class BackupRunner:
             if not self._should_upload_file(row):
                 continue
 
-            compressed_path = row.compress()
+            compressed_path = self.compress(row)
             row.encrypt(compressed_path, fingerprint)
 
             row.create_dir_listing(self._listings_dir)
@@ -70,3 +72,35 @@ class BackupRunner:
             row.cleanup()
 
         logger.info("ALL DONE")
+
+    def compress(self, file_data: FileData):
+        """
+        Compresses the file in work_dir and returns the path to compressed file
+
+        :return: path to the compressed file
+        """
+        if file_data.is_compressed():
+            logger.warning(
+                f"{file_data.file_path} is already compressed. Not compressing again"
+            )
+            return file_data.file_path
+
+        # only tar when it is a directory and it doesnt exist
+        dest_tar_file_path = file_data.get_dest_tar_file_path()
+        if not os_path.exists(dest_tar_file_path):
+            logger.info(
+                f"Start compressing path: {file_data.file_path}. Output path: {dest_tar_file_path}"
+            )
+            with tarfile.open(dest_tar_file_path, "w:gz") as tar:
+                tar.add(file_data.file_path)
+            logger.info(
+                "Finished path: {}. Output path: {}".format(
+                    file_data.file_path, dest_tar_file_path
+                )
+            )
+        else:
+            logger.warning(
+                f"Compressed path: {dest_tar_file_path} already exists. Not compressing again"
+            )
+
+        return dest_tar_file_path

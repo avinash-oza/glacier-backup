@@ -3,7 +3,6 @@ import logging
 import os
 import posixpath as os_path
 import subprocess
-import tarfile
 from dataclasses import dataclass
 
 from glacier_backup.gpg_util import GpgUtil
@@ -58,39 +57,7 @@ class FileData:
     def encrypted_file_name(self):
         return ".".join([self.compressed_file_name, "gpg"])
 
-    def compress(self):
-        """
-        Compresses the file in work_dir and returns the path to compressed file
-
-        :return: path to the compressed file
-        """
-        if self.is_compressed():
-            logger.warning(
-                f"{self.file_path} is already compressed. Not compressing again"
-            )
-            return self.file_path
-
-        # only tar when it is a directory and it doesnt exist
-        dest_tar_file_path = self._get_dest_tar_file_path()
-        if not os_path.exists(dest_tar_file_path):
-            logger.info(
-                f"Start compressing path: {self.file_path}. Output path: {dest_tar_file_path}"
-            )
-            with tarfile.open(dest_tar_file_path, "w:gz") as tar:
-                tar.add(self.file_path)
-            logger.info(
-                "Finished path: {}. Output path: {}".format(
-                    self.file_path, dest_tar_file_path
-                )
-            )
-        else:
-            logger.warning(
-                f"Compressed path: {dest_tar_file_path} already exists. Not compressing again"
-            )
-
-        return dest_tar_file_path
-
-    def _get_dest_tar_file_path(self):
+    def get_dest_tar_file_path(self):
         dest_tar_file_path = os_path.join(self.work_dir, self.compressed_file_name)
         return dest_tar_file_path
 
@@ -159,6 +126,6 @@ class FileData:
             # do not remove the original input archive file
             return
 
-        dest_tar_file_path = self._get_dest_tar_file_path()
+        dest_tar_file_path = self.get_dest_tar_file_path()
         logger.info(f"Removing {dest_tar_file_path}")
         os.remove(dest_tar_file_path)
