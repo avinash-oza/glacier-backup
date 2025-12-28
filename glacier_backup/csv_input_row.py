@@ -1,7 +1,7 @@
 import dataclasses
 from typing import Union, Optional
 
-from file_data import UPLOAD_TIME_ONCE, UPLOAD_TIME_EVERY_BACKUP
+from glacier_backup.file_data import UPLOAD_TIME_ONCE, UPLOAD_TIME_EVERY_BACKUP
 
 
 @dataclasses.dataclass
