@@ -8,7 +8,7 @@ import click
 
 from glacier_backup.backup_runner import BackupRunner
 from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
-from glacier_backup.structures import CsvInputRow
+from glacier_backup.csv_input_row import CsvInputRow
 
 logging.basicConfig(
     level=logging.INFO,
