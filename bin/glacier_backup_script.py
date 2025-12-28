@@ -36,7 +36,7 @@ def cli():
     help="Path to write the output file",
 )
 @click.option(
-    "--full",
+    "--full-backup",
     is_flag=True,
     help="Do a full backup (vs current year only)",
 )
