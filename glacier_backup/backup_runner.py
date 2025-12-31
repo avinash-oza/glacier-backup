@@ -111,7 +111,7 @@ class BackupRunner:
         """
 
         dest_file_name = ".".join([os_path.basename(compressed_file_path), "gpg"])
-        dest_file_path = os_path.join(self.work_dir, dest_file_name)
+        dest_file_path = os_path.join(self._work_dir, dest_file_name)
 
         if os_path.exists(dest_file_path):
             logger.warning(f"{dest_file_path=} already exists. Not encrypting again")
@@ -137,7 +137,7 @@ class BackupRunner:
 
         if not os_path.isdir(file_data.file_path):
             logger.warning("Input is not a dir, not creating a dir listing")
-            return
+            return None
 
         listing_file_name = ".".join([file_data.folder_name, "gz"])
         output_file_path = os_path.join(self._listings_dir, listing_file_name)
