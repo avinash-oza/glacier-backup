@@ -1,6 +1,10 @@
 import csv
+import gzip
 import logging
 import os
+import posixpath as os_path
+import subprocess
+import tarfile
 
 from glacier_backup.file_data import FileData, UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.gpg_util import GpgUtil
@@ -9,19 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 class BackupRunner:
-    def __init__(self, temp_dir=None, apprise_obj=None):
+    def __init__(self, temp_dir=None):
         """
 
         :param temp_dir:
-        :param apprise_obj: Apprise instance for sending notifications during the process
         """
 
         self._work_dir = temp_dir
         self._listings_dir = os.path.join(self._work_dir, "listings")
         os.makedirs(self._listings_dir, exist_ok=True)
-        self._apprise_obj = apprise_obj
 
-    def _load_input_file(self, input_file_path):
+    def _load_input_file(self, input_file_path) -> list[FileData]:
         input_file_list = []
         with open(input_file_path, "r") as f:
             reader = csv.DictReader(f)
@@ -30,7 +32,6 @@ class BackupRunner:
                 kwargs = {
                     "file_path": row["file_path"],
                     "work_dir": self._work_dir,
-                    "listings_root_path": self._listings_dir,
                     "output_file_path": row.get("output_file_path"),
                     "upload_time": upload_time,
                 }
@@ -64,11 +65,103 @@ class BackupRunner:
             if not self._should_upload_file(row):
                 continue
 
-            compressed_path = row.compress()
-            row.encrypt(compressed_path, fingerprint)
+            compressed_path = self.compress(row)
+            self.encrypt(compressed_path, fingerprint)
 
-            row.create_dir_listing(self._listings_dir)
+            self.create_dir_listing(row)
 
-            row.cleanup()
+            self.cleanup(row)
 
         logger.info("ALL DONE")
+
+    def compress(self, file_data: FileData):
+        """
+        Compresses the file in work_dir and returns the path to compressed file
+
+        :return: path to the compressed file
+        """
+        if file_data.is_compressed:
+            logger.warning(
+                f"{file_data.file_path} is already compressed. Not compressing again"
+            )
+            return file_data.file_path
+
+        # only tar when it is a directory and it doesnt exist
+        dest_tar_file_path = file_data.dest_tar_file_path
+        if not os_path.exists(dest_tar_file_path):
+            logger.info(
+                f"Start compressing {file_data.file_path=}, {dest_tar_file_path=}"
+            )
+            with tarfile.open(dest_tar_file_path, "w:gz") as tar:
+                tar.add(file_data.file_path)
+            logger.info(f"Finished path: {file_data.file_path=}, {dest_tar_file_path=}")
+        else:
+            logger.warning(
+                f"{dest_tar_file_path=} already exists. Not compressing again"
+            )
+
+        return dest_tar_file_path
+
+    def encrypt(self, compressed_file_path, fingerprint):
+        """
+        Encrypts the passed in file with key_id
+        :param str fingerprint: key to use for encryption
+        :param compressed_file_path: the file path to encrypt
+        :return: full path of the encrypted file
+        """
+
+        dest_file_name = ".".join([os_path.basename(compressed_file_path), "gpg"])
+        dest_file_path = os_path.join(self._work_dir, dest_file_name)
+
+        if os_path.exists(dest_file_path):
+            logger.warning(f"{dest_file_path=} already exists. Not encrypting again")
+            return dest_file_path
+
+        logger.info(f"Start GPG encrypting {compressed_file_path=}, {dest_file_path=}")
+        GpgUtil.encrypt_file(fingerprint, compressed_file_path, dest_file_path)
+
+        message = f"Start GPG encrypting {compressed_file_path=}, {dest_file_path=}"
+        logger.info(message)
+
+        return dest_file_path
+
+    def create_dir_listing(
+        self,
+        file_data: FileData,
+    ):
+        """
+        Returns the directory listing
+
+        :return: file path or None
+        """
+
+        if not os_path.isdir(file_data.file_path):
+            logger.warning("Input is not a dir, not creating a dir listing")
+            return None
+
+        listing_file_name = ".".join([file_data.folder_name, "gz"])
+        output_file_path = os_path.join(self._listings_dir, listing_file_name)
+
+        logger.info(f"Creating file containing the list of files {output_file_path=}")
+
+        with gzip.GzipFile(filename=output_file_path, mode="w") as gzipped_listing:
+            result = subprocess.run(
+                "du -ah {}".format(file_data.file_path), shell=True, capture_output=True
+            )
+            gzipped_listing.write(result.stdout)
+
+        logger.info(f"Finish file containing the list of files {output_file_path=}")
+        return output_file_path
+
+    def cleanup(self, file_data: FileData):
+        """
+        Cleans up any temporary files created
+        :return:
+        """
+        if file_data.is_compressed:
+            # do not remove the original input archive file
+            return
+
+        dest_tar_file_path = file_data.dest_tar_file_path
+        logger.info(f"Removing {dest_tar_file_path=}")
+        os.remove(dest_tar_file_path)

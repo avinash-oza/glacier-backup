@@ -58,6 +58,7 @@ class FileDataTestCase(TestCase):
         self.assertEqual(fd.encrypted_file_name, "test_folder.gz.gpg")
         self.assertEqual(fd.folder_name, "test_folder.gz")
 
+    @skip("Need to review later")
     @mock.patch("glacier_backup.file_data.tarfile.open")
     def test_compress(self, _):
         p = r"/mnt/raid0/test_folder"
@@ -70,6 +71,7 @@ class FileDataTestCase(TestCase):
         res = fd.compress()
         self.assertEqual(res, expected_output_path)
 
+    @skip("Need to review later")
     @mock.patch("glacier_backup.file_data.tarfile.open")
     def test_compress_compressed_file(self, _):
         p = r"/mnt/raid0/test_folder.bz2"

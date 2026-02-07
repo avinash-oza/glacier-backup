@@ -8,7 +8,7 @@ import click
 
 from glacier_backup.backup_runner import BackupRunner
 from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
-from glacier_backup.structures import CsvInputRow
+from glacier_backup.csv_input_row import CsvInputRow
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,7 +36,7 @@ def cli():
     help="Path to write the output file",
 )
 @click.option(
-    "--full",
+    "--full-backup",
     is_flag=True,
     help="Do a full backup (vs current year only)",
 )
