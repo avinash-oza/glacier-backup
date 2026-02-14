@@ -9,6 +9,10 @@ import click
 from glacier_backup.backup_runner import BackupRunner
 from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.csv_input_row import CsvInputRow
+from glacier_backup.sns_notification_adapter import (
+    NoNotificationAdapter,
+    SnsNotificationAdapter,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -112,13 +116,21 @@ def list_immich(immich_file_root, output_file_path, full_backup):
 @click.option("--gpg-key-id", help="Fingerprint of the key to use")
 @click.option("--input-file-path", help="Local file containing directory list")
 @click.option("--temp-dir", help="dir to use for scratch space")
-def create_archives(gpg_key_id, input_file_path, temp_dir):
+@click.option("--sns-notification-arn", help="send SNS notifications to this ARN")
+def create_archives(gpg_key_id, input_file_path, temp_dir, sns_notification_arn):
     if not os.path.exists(temp_dir):
         raise ValueError(f"temp dir does not exist, create before running")
 
-    backup_runner = BackupRunner(temp_dir=temp_dir)
+    notifier = NoNotificationAdapter()
+    if sns_notification_arn is not None:
+        notifier = SnsNotificationAdapter(topic_arn=sns_notification_arn)
 
-    backup_runner.run(input_file_path, gpg_key_id)
+    backup_runner = BackupRunner(temp_dir=temp_dir, notifier=notifier)
+
+    try:
+        backup_runner.run(input_file_path, gpg_key_id)
+    finally:
+        notifier.send_notification("Finished backup runner")
 
 
 if __name__ == "__main__":

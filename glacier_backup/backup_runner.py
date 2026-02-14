@@ -8,12 +8,17 @@ import tarfile
 
 from glacier_backup.file_data import FileData, UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.gpg_util import GpgUtil
+from glacier_backup.sns_notification_adapter import NotificationAdapter
 
 logger = logging.getLogger(__name__)
 
 
 class BackupRunner:
-    def __init__(self, temp_dir=None):
+    def __init__(
+        self,
+        notifier: NotificationAdapter,
+        temp_dir=None,
+    ):
         """
 
         :param temp_dir:
@@ -22,6 +27,10 @@ class BackupRunner:
         self._work_dir = temp_dir
         self._listings_dir = os.path.join(self._work_dir, "listings")
         os.makedirs(self._listings_dir, exist_ok=True)
+        self._notification_adapter = notifier
+        self._notification_adapter.set_logger(logger)
+        # message to quickly fail if ARN permissions are missing or something is wrong with the SNS client
+        self._notification_adapter.send_notification("Starting backup runner")
 
     def _load_input_file(self, input_file_path) -> list[FileData]:
         input_file_list = []
@@ -81,23 +90,27 @@ class BackupRunner:
         :return: path to the compressed file
         """
         if file_data.is_compressed:
-            logger.warning(
-                f"{file_data.file_path} is already compressed. Not compressing again"
+            self._notification_adapter.send_notification(
+                f"{file_data.file_path} is already compressed. Not compressing again",
+                log_level=logging.WARNING,
             )
             return file_data.file_path
 
         # only tar when it is a directory and it doesnt exist
         dest_tar_file_path = file_data.dest_tar_file_path
         if not os_path.exists(dest_tar_file_path):
-            logger.info(
+            self._notification_adapter.send_notification(
                 f"Start compressing {file_data.file_path=}, {dest_tar_file_path=}"
             )
             with tarfile.open(dest_tar_file_path, "w:gz") as tar:
                 tar.add(file_data.file_path)
-            logger.info(f"Finished path: {file_data.file_path=}, {dest_tar_file_path=}")
+            self._notification_adapter.send_notification(
+                "Finished compressing {file_data.file_path=}, {dest_tar_file_path=}"
+            )
         else:
-            logger.warning(
-                f"{dest_tar_file_path=} already exists. Not compressing again"
+            self._notification_adapter.send_notification(
+                f"{dest_tar_file_path=} already exists. Not compressing again",
+                log_level=logging.WARNING,
             )
 
         return dest_tar_file_path
@@ -114,14 +127,20 @@ class BackupRunner:
         dest_file_path = os_path.join(self._work_dir, dest_file_name)
 
         if os_path.exists(dest_file_path):
-            logger.warning(f"{dest_file_path=} already exists. Not encrypting again")
+            self._notification_adapter.send_notification(
+                f"{dest_file_path=} already exists. Not encrypting again",
+                log_level=logging.WARNING,
+            )
             return dest_file_path
 
-        logger.info(f"Start GPG encrypting {compressed_file_path=}, {dest_file_path=}")
+        self._notification_adapter.send_notification(
+            f"Start GPG encrypting {compressed_file_path=}, {dest_file_path=}"
+        )
         GpgUtil.encrypt_file(fingerprint, compressed_file_path, dest_file_path)
 
-        message = f"Start GPG encrypting {compressed_file_path=}, {dest_file_path=}"
-        logger.info(message)
+        self._notification_adapter.send_notification(
+            f"Finish GPG encrypting {compressed_file_path=}, {dest_file_path=}"
+        )
 
         return dest_file_path
 
