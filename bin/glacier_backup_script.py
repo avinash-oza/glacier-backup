@@ -117,13 +117,20 @@ def list_immich(immich_file_root, output_file_path, full_backup):
 @click.option("--input-file-path", help="Local file containing directory list")
 @click.option("--temp-dir", help="dir to use for scratch space")
 @click.option("--sns-notification-arn", help="send SNS notifications to this ARN")
-def create_archives(gpg_key_id, input_file_path, temp_dir, sns_notification_arn):
+@click.option(
+    "--assume-role-arn", help="ARN of the role to assume for SNS notifications"
+)
+def create_archives(
+    gpg_key_id, input_file_path, temp_dir, sns_notification_arn, assume_role_arn
+):
     if not os.path.exists(temp_dir):
         raise ValueError(f"temp dir does not exist, create before running")
 
     notifier = NoNotificationAdapter()
     if sns_notification_arn is not None:
-        notifier = SnsNotificationAdapter(topic_arn=sns_notification_arn)
+        notifier = SnsNotificationAdapter(
+            topic_arn=sns_notification_arn, assume_role_arn=assume_role_arn
+        )
 
     backup_runner = BackupRunner(temp_dir=temp_dir, notifier=notifier)
 
