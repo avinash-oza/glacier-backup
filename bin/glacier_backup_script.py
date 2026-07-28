@@ -85,6 +85,7 @@ def list_immich(immich_file_root, output_file_path, full_backup):
                         year_file_path,
                         UPLOAD_TIME_EVERY_BACKUP,
                         archive_output_file_name,
+                        listing_file_name=f"{archive_output_file_name}.gz",
                     )
                 )
                 continue
@@ -95,13 +96,17 @@ def list_immich(immich_file_root, output_file_path, full_backup):
                         year_file_path,
                         UPLOAD_TIME_EVERY_BACKUP,
                         archive_output_file_name,
+                        listing_file_name=f"{archive_output_file_name}.gz",
                     )
                 )
                 logger.info("Setting current year to glacier")
                 continue
             output_list.append(
                 CsvInputRow(
-                    year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name
+                    year_file_path,
+                    UPLOAD_TIME_EVERY_BACKUP,
+                    archive_output_file_name,
+                    listing_file_name=f"{archive_output_file_name}.gz",
                 )
             )
 
