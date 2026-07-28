@@ -57,3 +57,7 @@ class FileData:
     def dest_tar_file_path(self):
         dest_tar_file_path = os_path.join(self.work_dir, self.compressed_file_name)
         return dest_tar_file_path
+
+    @property
+    def listing_file_name(self):
+        return ".".join([self.folder_name, "gz"])

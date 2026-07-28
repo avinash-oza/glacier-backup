@@ -158,7 +158,7 @@ class BackupRunner:
             logger.warning("Input is not a dir, not creating a dir listing")
             return None
 
-        listing_file_name = ".".join([file_data.folder_name, "gz"])
+        listing_file_name = file_data.listing_file_name
         output_file_path = os_path.join(self._listings_dir, listing_file_name)
 
         logger.info(f"Creating file containing the list of files {output_file_path=}")
