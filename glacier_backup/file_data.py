@@ -17,6 +17,7 @@ class FileData:
     work_dir: str
     output_file_path: str = ""
     upload_time: str = UPLOAD_TIME_EVERY_BACKUP
+    listing_file_name: str = ""
 
     def __post_init__(self):
 
@@ -57,3 +58,11 @@ class FileData:
     def dest_tar_file_path(self):
         dest_tar_file_path = os_path.join(self.work_dir, self.compressed_file_name)
         return dest_tar_file_path
+
+    @property
+    def listing_file_full_name(self):
+        return (
+            ".".join([self.listing_file_name, "gz"])
+            if self.listing_file_name
+            else ".".join([self.folder_name, "gz"])
+        )

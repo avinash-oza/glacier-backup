@@ -9,3 +9,4 @@ class CsvInputRow:
     file_path: str
     upload_time: Union[UPLOAD_TIME_ONCE, UPLOAD_TIME_EVERY_BACKUP]
     output_file_path: Optional[str] = None
+    listing_file_name: Optional[str] = None

@@ -45,6 +45,10 @@ def cli():
     help="Do a full backup (vs current year only)",
 )
 def list_immich(immich_file_root, output_file_path, full_backup):
+    logger.info(
+        f"Starting list_immich: immich_file_root={immich_file_root} "
+        f"output_file_path={output_file_path} full_backup={full_backup}"
+    )
     # thumbs -> complete directory every time
     # upload -> complete directory every time
     # library/1e958228-47fc-463d-83c7-0bc485a8cbfa/2024
@@ -68,10 +72,10 @@ def list_immich(immich_file_root, output_file_path, full_backup):
         user_file_path = os.path.join(photos_file_path, user)
 
         if not os.path.isdir(user_file_path):
-            logger.warning(f"Skipping {user_file_path=}")
+            logger.warning(f"Skipping non-directory path: {user_file_path}")
             continue
 
-        logger.info("Username: %s", user)
+        logger.info(f"Processing user={user} path={user_file_path}")
 
         user_file_path = os.path.join(photos_file_path, user)
         for year in os.listdir(user_file_path):
@@ -80,11 +84,15 @@ def list_immich(immich_file_root, output_file_path, full_backup):
             archive_output_file_name = f"{user}__{year}"
 
             if full_backup:
+                logger.info(
+                    f"Adding year for full backup: user={user} year={year} path={year_file_path}"
+                )
                 output_list.append(
                     CsvInputRow(
                         year_file_path,
                         UPLOAD_TIME_EVERY_BACKUP,
                         archive_output_file_name,
+                        listing_file_name=f"{archive_output_file_name}.gz",
                     )
                 )
                 continue
@@ -95,21 +103,28 @@ def list_immich(immich_file_root, output_file_path, full_backup):
                         year_file_path,
                         UPLOAD_TIME_EVERY_BACKUP,
                         archive_output_file_name,
+                        listing_file_name=f"{archive_output_file_name}.gz",
                     )
                 )
-                logger.info("Setting current year to glacier")
+                logger.info(
+                    f"Adding current year for backup: user={user} year={year} path={year_file_path}"
+                )
                 continue
             output_list.append(
                 CsvInputRow(
-                    year_file_path, UPLOAD_TIME_EVERY_BACKUP, archive_output_file_name
+                    year_file_path,
+                    UPLOAD_TIME_EVERY_BACKUP,
+                    archive_output_file_name,
+                    listing_file_name=f"{archive_output_file_name}.gz",
                 )
             )
 
     with open(output_file_path, "w") as f:
         writer = csv.writer(f, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(["file_path", "upload_time", "output_file_path"])
+        writer.writerow(["file_path", "upload_time", "output_file_path", "listing_file_name"])
         for r in output_list:
             writer.writerow(dataclasses.astuple(r))
+    logger.info(f"Finished list_immich: wrote {len(output_list)} rows to {output_file_path}")
 
 
 @cli.command()
@@ -123,11 +138,17 @@ def list_immich(immich_file_root, output_file_path, full_backup):
 def create_archives(
     gpg_key_id, input_file_path, temp_dir, sns_notification_arn, assume_role_arn
 ):
+    logger.info(
+        f"Starting create_archives: input_file_path={input_file_path} "
+        f"temp_dir={temp_dir} sns_notification_enabled={sns_notification_arn is not None}"
+    )
     if not os.path.exists(temp_dir):
-        raise ValueError(f"temp dir does not exist, create before running")
+        logger.error(f"Temp dir does not exist: {temp_dir}")
+        raise ValueError("temp dir does not exist, create before running")
 
     notifier = NoNotificationAdapter()
     if sns_notification_arn is not None:
+        logger.info(f"Using SNS notifier: topic_arn={sns_notification_arn}")
         notifier = SnsNotificationAdapter(
             topic_arn=sns_notification_arn, assume_role_arn=assume_role_arn
         )
@@ -137,9 +158,9 @@ def create_archives(
     try:
         backup_runner.run(input_file_path, gpg_key_id)
     finally:
+        logger.info("Sending final notification for backup runner completion")
         notifier.send_notification("Finished backup runner")
 
 
 if __name__ == "__main__":
-
     cli()
