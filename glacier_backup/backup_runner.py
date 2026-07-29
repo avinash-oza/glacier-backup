@@ -41,7 +41,7 @@ class BackupRunner:
                     "file_path": row["file_path"],
                     "work_dir": self._work_dir,
                     "output_file_path": row.get("output_file_path"),
-                    "upload_time": row['"upload_time"'],
+                    "upload_time": row["upload_time"],
                     "listing_file_name": row['"listing_file_name"'],
                 }
                 logger.info(
