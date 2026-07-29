@@ -121,7 +121,7 @@ def list_immich(immich_file_root, output_file_path, full_backup):
 
     with open(output_file_path, "w") as f:
         writer = csv.writer(f, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(["file_path", "upload_time", "output_file_path"])
+        writer.writerow(["file_path", "upload_time", "output_file_path", "listing_file_name"])
         for r in output_list:
             writer.writerow(dataclasses.astuple(r))
     logger.info(f"Finished list_immich: wrote {len(output_list)} rows to {output_file_path}")

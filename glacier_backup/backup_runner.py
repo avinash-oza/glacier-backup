@@ -37,14 +37,12 @@ class BackupRunner:
         with open(input_file_path, "r") as f:
             reader = csv.DictReader(f)
             for row in reader:
-                upload_time = row.get("upload_time")
-                listing_file_name = row.get("listing_file_name", "")
                 kwargs = {
                     "file_path": row["file_path"],
                     "work_dir": self._work_dir,
                     "output_file_path": row.get("output_file_path"),
-                    "upload_time": upload_time,
-                    "listing_file_name": listing_file_name,
+                    "upload_time": row['"upload_time"'],
+                    "listing_file_name": row['"listing_file_name"'],
                 }
                 logger.info(
                     f"Added path {kwargs['file_path']} with {upload_time=} to paths to process"
