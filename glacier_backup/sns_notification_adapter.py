@@ -39,10 +39,16 @@ class SnsNotificationAdapter(NotificationAdapter):
     def send_notification(self, message: str, log_level=logging.INFO):
         self._log(message, log_level)
 
-        self._sns_client.publish(
-            TopicArn=self._topic_arn,
-            Message=message,
-        )
+        try:
+            self._sns_client.publish(
+                TopicArn=self._topic_arn,
+                Message=message,
+            )
+        except Exception as e:
+            self._log(
+                "Unable to send notification via SNS, continuing: " + str(e),
+                logging.ERROR,
+            )
 
     @property
     def _sns_client(self):

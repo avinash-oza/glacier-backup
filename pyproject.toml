@@ -17,3 +17,6 @@ dev = [
     "mypy>=1.15.0",
     "pre-commit>=4.2.0",
 ]
+
+[tool.black]
+target-version = ["py313"]
