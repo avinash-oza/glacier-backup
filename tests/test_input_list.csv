@@ -1,5 +1,5 @@
-file_path,upload_time,output_file_path
-{DIRECTORY_ROOTS}/Folder1,ONCE,
-{DIRECTORY_ROOTS}/Folder2,EVERY_BACKUP,
-{DIRECTORY_ROOTS}/Folder3,EVERY_BACKUP,
-{DIRECTORY_ROOTS}/Folder4,EVERY_BACKUP,
+file_path,upload_time,output_file_path,listing_file_name
+{DIRECTORY_ROOTS}/Folder1,ONCE,,Folder1
+{DIRECTORY_ROOTS}/Folder2,EVERY_BACKUP,,Folder2
+{DIRECTORY_ROOTS}/Folder3,EVERY_BACKUP,,Folder3
+{DIRECTORY_ROOTS}/Folder4,EVERY_BACKUP,,Folder4
