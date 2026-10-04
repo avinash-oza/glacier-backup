@@ -9,6 +9,7 @@ import click
 from glacier_backup.backup_runner import BackupRunner
 from glacier_backup.csv_input_row import CsvInputRow
 from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
+from glacier_backup.gpg_util import GpgUtil, KEYSERVER
 from glacier_backup.sns_notification_adapter import (
     NoNotificationAdapter,
     SnsNotificationAdapter,
@@ -24,6 +25,23 @@ logger = logging.getLogger(__name__)
 @click.group()
 def cli():
     pass
+
+
+@cli.command()
+@click.argument("key_id")
+@click.option(
+    "--keyserver",
+    default=KEYSERVER,
+    show_default=True,
+    help="Keyserver to publish the updated key to",
+)
+def update_gpg_expiry(key_id, keyserver):
+    try:
+        GpgUtil.update_key_expiry(key_id, keyserver)
+    except (ValueError, RuntimeError) as error:
+        raise click.ClickException(str(error)) from error
+
+    click.echo(f"Updated expiry to 1 year and uploaded {key_id} to {keyserver}.")
 
 
 @cli.command()
