@@ -7,8 +7,8 @@ import os
 import click
 
 from glacier_backup.backup_runner import BackupRunner
-from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.csv_input_row import CsvInputRow
+from glacier_backup.file_data import UPLOAD_TIME_EVERY_BACKUP
 from glacier_backup.sns_notification_adapter import (
     NoNotificationAdapter,
     SnsNotificationAdapter,
@@ -121,10 +121,14 @@ def list_immich(immich_file_root, output_file_path, full_backup):
 
     with open(output_file_path, "w") as f:
         writer = csv.writer(f, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL)
-        writer.writerow(["file_path", "upload_time", "output_file_path", "listing_file_name"])
+        writer.writerow(
+            ["file_path", "upload_time", "output_file_path", "listing_file_name"]
+        )
         for r in output_list:
             writer.writerow(dataclasses.astuple(r))
-    logger.info(f"Finished list_immich: wrote {len(output_list)} rows to {output_file_path}")
+    logger.info(
+        f"Finished list_immich: wrote {len(output_list)} rows to {output_file_path}"
+    )
 
 
 @cli.command()
