@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "glacier-backup"
 version = "0.2b2"
@@ -8,6 +12,9 @@ dependencies = [
     "click>=8.1.8",
     "python-gnupg>=0.5.4",
 ]
+
+[project.scripts]
+glacier-backup = "glacier_backup.cli:cli"
 
 [dependency-groups]
 dev = [
