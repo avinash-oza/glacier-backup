@@ -1,106 +1,107 @@
-from unittest import TestCase, mock, skip
+import pytest
 
-from glacier_backup.file_data import FileData
+from glacier_backup.file_data import (
+    FileData,
+    UPLOAD_TIME_EVERY_BACKUP,
+    UPLOAD_TIME_ONCE,
+)
 
 
-class FileDataTestCase(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.test_work_dir = r"/mnt/raid1/www/work_dir"
+@pytest.mark.parametrize(
+    ("file_path", "compressed_file_name", "folder_name", "is_compressed"),
+    [
+        (r"/mnt/raid0/test_folder", "test_folder.tar.gz", "test_folder", False),
+        (
+            r"/mnt/raid0/test folder spaces",
+            "test_folder_spaces.tar.gz",
+            "test_folder_spaces",
+            False,
+        ),
+        (
+            r"/mnt/raid0/test_folder.bz2",
+            "test_folder.bz2",
+            "test_folder.bz2",
+            True,
+        ),
+        (
+            r"/mnt/raid0/test folder spaces.bz2",
+            "test_folder_spaces.bz2",
+            "test_folder_spaces.bz2",
+            True,
+        ),
+        (
+            r"/mnt/raid0/test_folder.gz",
+            "test_folder.gz",
+            "test_folder.gz",
+            True,
+        ),
+    ],
+)
+def test_file_names(
+    file_path, compressed_file_name, folder_name, is_compressed, tmp_path
+):
+    file_data = FileData(file_path=file_path, work_dir=str(tmp_path))
 
-    def test_sample_path(self):
-        p = r"/mnt/raid0/test_folder"
+    assert file_data.compressed_file_name == compressed_file_name
+    assert file_data.encrypted_file_name == f"{compressed_file_name}.gpg"
+    assert file_data.folder_name == folder_name
+    assert file_data.is_compressed is is_compressed
 
-        fd = FileData(
-            file_path=p, work_dir=self.test_work_dir, listings_root_path="my_listings"
-        )
-        self.assertEqual(fd.compressed_file_name, "test_folder.tar.gz")
-        self.assertEqual(fd.encrypted_file_name, "test_folder.tar.gz.gpg")
-        self.assertEqual(fd.folder_name, "test_folder")
 
-    def test_sample_path_with_spaces(self):
-        p = r"/mnt/raid0/test folder spaces"
+@pytest.mark.parametrize(
+    "upload_time", [UPLOAD_TIME_ONCE, UPLOAD_TIME_EVERY_BACKUP, "once", "every_backup"]
+)
+def test_upload_time_is_case_insensitive(upload_time, tmp_path):
+    file_data = FileData(
+        file_path="/input/archive",
+        work_dir=str(tmp_path),
+        upload_time=upload_time,
+    )
 
-        fd = FileData(
-            file_path=p, work_dir=self.test_work_dir, listings_root_path="my_listings"
-        )
-        self.assertEqual(fd.compressed_file_name, "test_folder_spaces.tar.gz")
-        self.assertEqual(fd.encrypted_file_name, "test_folder_spaces.tar.gz.gpg")
-        self.assertEqual(fd.folder_name, "test_folder_spaces")
+    assert file_data.upload_time == upload_time
 
-    def test_sample_path_bz2(self):
-        p = r"/mnt/raid0/test_folder.bz2"
 
-        fd = FileData(
-            file_path=p, work_dir=self.test_work_dir, listings_root_path="my_listings"
-        )
-        self.assertEqual(fd.compressed_file_name, "test_folder.bz2")
-        self.assertEqual(fd.encrypted_file_name, "test_folder.bz2.gpg")
-        self.assertEqual(fd.folder_name, "test_folder.bz2")
-
-    def test_sample_path_bz2_spaces(self):
-        p = r"/mnt/raid0/test folder spaces.bz2"
-
-        fd = FileData(
-            file_path=p, work_dir=self.test_work_dir, listings_root_path="my_listings"
-        )
-        self.assertEqual(fd.compressed_file_name, "test_folder_spaces.bz2")
-        self.assertEqual(fd.encrypted_file_name, "test_folder_spaces.bz2.gpg")
-        self.assertEqual(fd.folder_name, "test_folder_spaces.bz2")
-
-    def test_sample_path_gz(self):
-        p = r"/mnt/raid0/test_folder.gz"
-
-        fd = FileData(
-            file_path=p, work_dir=self.test_work_dir, listings_root_path="my_listings"
-        )
-        self.assertEqual(fd.compressed_file_name, "test_folder.gz")
-        self.assertEqual(fd.encrypted_file_name, "test_folder.gz.gpg")
-        self.assertEqual(fd.folder_name, "test_folder.gz")
-
-    @skip("Need to review later")
-    @mock.patch("glacier_backup.file_data.tarfile.open")
-    def test_compress(self, _):
-        p = r"/mnt/raid0/test_folder"
-
-        fd = FileData(
-            file_path=p, work_dir=self.test_work_dir, listings_root_path="my_listings"
-        )
-
-        expected_output_path = "/mnt/raid1/www/work_dir/s3/test_folder.tar.gz"
-        res = fd.compress()
-        self.assertEqual(res, expected_output_path)
-
-    @skip("Need to review later")
-    @mock.patch("glacier_backup.file_data.tarfile.open")
-    def test_compress_compressed_file(self, _):
-        p = r"/mnt/raid0/test_folder.bz2"
-
-        fd = FileData(
-            file_path=p, work_dir=self.test_work_dir, listings_root_path="my_listings"
+def test_unsupported_upload_time_raises_value_error(tmp_path):
+    with pytest.raises(
+        ValueError,
+        match=r"Path: /input/archive, self\.upload_time='sometimes' not supported",
+    ):
+        FileData(
+            file_path="/input/archive",
+            work_dir=str(tmp_path),
+            upload_time="sometimes",
         )
 
-        expected_output_path = "/mnt/raid0/test_folder.bz2"
-        res = fd.compress()
-        self.assertEqual(res, expected_output_path, msg="file should not be copied")
 
-    @skip("Need to review later")
-    @mock.patch("glacier_backup.file_data.GpgUtil")
-    def test_encrypt_sample_gz(self, mock_gnupg, *_):
-        p = r"/mnt/raid0/test_folder.gz"
+def test_init_creates_work_directory(tmp_path):
+    work_dir = tmp_path / "nested" / "work"
 
-        fd = FileData(
-            file_path=p,
-            work_dir=self.test_work_dir,
-            listings_root_path="my_listings",
-            storage_provider="onedrive",
-        )
+    FileData(file_path="/input/archive", work_dir=str(work_dir))
 
-        compressed_file_name = "/mnt/raid0/test_folder.bz2"
-        _ = fd.encrypt(compressed_file_name, "my_key_abc")
-        mock_gnupg.GPG.return_value.encrypt_file.assert_called_once_with(
-            mock.ANY,
-            armor=False,
-            output="/mnt/raid1/www/work_dir/onedrive/test_folder.bz2.gpg",
-            recipients=mock.ANY,
-        )
+    assert work_dir.is_dir()
+
+
+def test_output_file_path_sets_compressed_and_encrypted_names(tmp_path):
+    file_data = FileData(
+        file_path="/input/source folder",
+        work_dir=str(tmp_path),
+        output_file_path="daily_backup",
+    )
+
+    assert file_data.compressed_file_name == "daily_backup.tar.gz"
+    assert file_data.encrypted_file_name == "daily_backup.tar.gz.gpg"
+    assert file_data.dest_tar_file_path == str(tmp_path / "daily_backup.tar.gz")
+
+
+@pytest.mark.parametrize(
+    ("listing_file_name", "expected_name"),
+    [("", "source_folder.gz"), ("monthly_listing", "monthly_listing.gz")],
+)
+def test_listing_file_full_name(listing_file_name, expected_name, tmp_path):
+    file_data = FileData(
+        file_path="/input/source folder",
+        work_dir=str(tmp_path),
+        listing_file_name=listing_file_name,
+    )
+
+    assert file_data.listing_file_full_name == expected_name

@@ -16,7 +16,12 @@ dev = [
     "build>=1.2.2.post1",
     "mypy>=1.15.0",
     "pre-commit>=4.2.0",
+    "pytest>=8.3.5",
+    "pytest-cov>=7.0.0",
 ]
 
 [tool.black]
 target-version = ["py313"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
