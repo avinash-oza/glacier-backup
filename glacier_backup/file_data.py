@@ -38,13 +38,16 @@ class FileData:
 
     @property
     def compressed_file_name(self):
-        if self.is_compressed:
-            # keep the compressed file as is
-            return self.folder_name
-        if self.output_file_path:
-            return ".".join([self.output_file_path, "tar.gz"])
+        return self.get_compressed_file_name(self.file_path, self.output_file_path)
 
-        return ".".join([self.folder_name, "tar.gz"])
+    @staticmethod
+    def get_compressed_file_name(file_path: str, output_file_path: str | None = None):
+        folder_name = os_path.basename(file_path).replace(" ", "_")
+        if file_path.endswith("bz2") or file_path.endswith("gz"):
+            return folder_name
+        if output_file_path:
+            return ".".join([output_file_path, "tar.gz"])
+        return ".".join([folder_name, "tar.gz"])
 
     @property
     def is_compressed(self):
