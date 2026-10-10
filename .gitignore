@@ -1,6 +1,8 @@
 # Python-generated files
 __pycache__/
+*.csv
 *.py[oc]
+.coverage
 build/
 dist/
 wheels/
